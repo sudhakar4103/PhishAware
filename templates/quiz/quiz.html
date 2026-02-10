@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Phishing Awareness Quiz{% endblock %}
+
+{% block extra_css %}
+<style>
+    .quiz-container {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    .question-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        padding: 20px;
+    }
+    .option-label {
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+    .option-label:hover {
+        background: #f0f0f0;
+    }
+    .option-label input[type="radio"] {
+        margin-right: 10px;
+    }
+    .timer {
+        font-size: 24px;
+        font-weight: bold;
+        padding: 10px 20px;
+        border-radius: 4px;
+        background: white;
+        border: 2px solid #007bff;
+    }
+    .timer.warning {
+        background: #fff3cd;
+        border-color: #ffc107;
+    }
+    .timer.critical {
+        background: #f8d7da;
+        border-color: #dc3545;
+    }
+    .progress-info {
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>Phishing Awareness Quiz</h3>
+                <div class="timer" id="timer">10:00</div>
+            </div>
+
+            <div class="quiz-container">
+                <div class="progress-info">
+                    <strong>Campaign:</strong> {{ campaign.name }}<br>
+                    <strong>Type:</strong> {{ campaign.phishing_type | replace('_', ' ') | title }}<br>
+                    <strong>Questions:</strong> <span id="question-count">?</span>
+                </div>
+
+                <form id="quizForm">
+                    <div id="questions-container"></div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                            Submit Quiz
+                        </button>
+                    </div>
+                </form>
+
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <strong>Note:</strong> All questions must be answered before submission.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questions = {{ questions | tojson }};
+    const campaignId = '{{ campaign_id }}';
+    const trackingToken = '{{ tracking_token }}';
+    const timeLimit = {{ 600 }};  // 10 minutes in seconds
+
+    // Initialize quiz
+    initializeQuiz(questions);
+
+    // Start timer
+    let timeRemaining = timeLimit;
+    startTimer(timeRemaining);
+
+    // Handle form submission
+    document.getElementById('quizForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitQuiz();
+    });
+
+    function initializeQuiz(questions) {
+        const container = document.getElementById('questions-container');
+        document.getElementById('question-count').textContent = questions.length;
+
+        questions.forEach((q, index) => {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-card';
+            questionDiv.innerHTML = `
+                <h6 class="mb-3">
+                    <strong>Question ${index + 1} of ${questions.length}</strong>
+                </h6>
+                <p class="mb-3"><strong>${q.question}</strong></p>
+                ${q.options.map((option, optIndex) => `
+                    <label class="option-label d-block">
+                        <input type="radio" name="q_${q.id}" value="${optIndex}" required>
+                        ${option}
+                    </label>
+                `).join('')}
+            `;
+            container.appendChild(questionDiv);
+        });
+    }
+
+    function startTimer(duration) {
+        let timeLeft = duration;
+        const timerEl = document.getElementById('timer');
+
+        const interval = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+
+            timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            // Change color based on time remaining
+            timerEl.classList.remove('warning', 'critical');
+            if (timeLeft <= 60) {
+                timerEl.classList.add('critical');
+            } else if (timeLeft <= 180) {
+                timerEl.classList.add('warning');
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                alert('Time is up! Your quiz will be submitted.');
+                submitQuiz();
+            }
+        }, 1000);
+    }
+
+    function submitQuiz() {
+        // Validate all questions answered
+        const form = document.getElementById('quizForm');
+        const inputs = form.querySelectorAll('input[type="radio"]');
+        const questions = {{ questions | tojson }};
+        
+        let unanswered = false;
+        questions.forEach(q => {
+            const answered = form.querySelector(`input[name="q_${q.id}"]:checked`);
+            if (!answered) {
+                unanswered = true;
+            }
+        });
+
+        if (unanswered) {
+            alert('Please answer all questions before submitting.');
+            return;
+        }
+
+        // Collect answers
+        const answers = {};
+        questions.forEach(q => {
+            const selected = form.querySelector(`input[name="q_${q.id}"]:checked`);
+            answers[q.id] = parseInt(selected.value);
+        });
+
+        // Calculate time taken
+        const timeTaken = timeLimit - parseInt(document.getElementById('timer').textContent.split(':')[0]) * 60 - 
+                         parseInt(document.getElementById('timer').textContent.split(':')[1]);
+
+        // Submit
+        fetch('{{ url_for("submit_quiz") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                campaign_id: campaignId,
+                tracking_token: trackingToken,
+                answers: answers,
+                time_taken: timeTaken
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to results page
+                window.location.href = `{{ url_for('quiz_results', tracking_token='') }}` + trackingToken;
+            } else {
+                alert('Error submitting quiz: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while submitting the quiz.');
+        });
+    }
+});
+</script>
+{% endblock %}

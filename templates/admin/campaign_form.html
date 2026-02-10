@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Create Campaign - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h3 class="mb-4">Create New Phishing Simulation Campaign</h3>
+
+            <form action="{{ url_for('create_campaign') }}" method="POST">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Campaign Details</h6>
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Campaign Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="e.g., Monthly Q1 Phishing Test">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Campaign description and objectives..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="template_id" class="form-label">Phishing Template *</label>
+                            <select class="form-select" id="template_id" name="template_id" required>
+                                <option value="">Select a template...</option>
+                                {% for template in templates %}
+                                <option value="{{ template.id }}">{{ template.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Templates are provided by the platform. Admins select one and proceed.</small>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <strong>⚠️ Important:</strong> 
+                            <ul class="mb-0">
+                                <li>Templates use fictional brands and dummy domains</li>
+                                <li>Include phishing red flags for training purposes</li>
+                                <li>Always include a clear disclaimer when clicked</li>
+                                <li>Never capture actual credentials</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Create Campaign</button>
+                            <a href="{{ url_for('campaigns_list') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">Template Preview</h6>
+                    <div class="small mb-2"><strong>Type:</strong> <span id="previewType">-</span></div>
+                    <div class="small mb-2"><strong>Sender:</strong> <span id="previewSender">-</span></div>
+                    <div class="small mb-2"><strong>Subject:</strong> <span id="previewSubject">-</span></div>
+                    <div class="small"><strong>Description:</strong> <span id="previewDescription">-</span></div>
+                </div>
+            </div>
+
+            <div class="card mt-3 border-info">
+                <div class="card-body">
+                    <h6 class="card-title">Email Body Preview</h6>
+                    <div id="previewBody" class="small" style="font-size: 12px; max-height: 240px; overflow:auto; background:#fff; border:1px solid #dee2e6; padding:10px; border-radius:6px;">Select a template to preview the email body.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const templates = {{ templates | tojson }};
+
+function formatType(value) {
+    if (!value) {
+        return '-';
+    }
+    return value.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function updateTemplatePreview() {
+    const select = document.getElementById('template_id');
+    const selectedId = select.value;
+    const template = templates.find(item => item.id === selectedId);
+
+    const previewType = document.getElementById('previewType');
+    const previewSender = document.getElementById('previewSender');
+    const previewSubject = document.getElementById('previewSubject');
+    const previewDescription = document.getElementById('previewDescription');
+    const previewBody = document.getElementById('previewBody');
+
+    if (!template) {
+        previewType.textContent = '-';
+        previewSender.textContent = '-';
+        previewSubject.textContent = '-';
+        previewDescription.textContent = '-';
+        previewBody.textContent = 'Select a template to preview the email body.';
+        return;
+    }
+
+    previewType.textContent = formatType(template.phishing_type);
+    previewSender.textContent = `${template.sender_name} <${template.sender_email}>`;
+    previewSubject.textContent = template.subject_line;
+    previewDescription.textContent = template.description || '-';
+    previewBody.innerHTML = template.html.replace(/\{\{tracking_link\}\}/g, '#');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const select = document.getElementById('template_id');
+    if (select) {
+        select.addEventListener('change', updateTemplatePreview);
+        updateTemplatePreview();
+    }
+});
+</script>
+{% endblock %}
