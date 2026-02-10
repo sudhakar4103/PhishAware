@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Awareness Report - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h3 class="mb-4">Employee Awareness Report</h3>
+
+    {% if campaign %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h6>Total Employees</h6>
+                    <h3>{{ risk_summary.get('total_employees', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h6>High Awareness</h6>
+                    <h3>{{ risk_summary.get('high_awareness', 0) }}</h3>
+                    <small>{{ "%.1f"|format(risk_summary.get('high_awareness_percentage', 0)) }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h6>Medium Awareness</h6>
+                    <h3>{{ risk_summary.get('medium_awareness', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h6>Low Awareness</h6>
+                    <h3>{{ risk_summary.get('low_awareness', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Awareness Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="awarenessChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Risk Metrics</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Click Rate:</strong> {{ "%.1f"|format(risk_summary.get('click_rate_percentage', 0)) }}%</p>
+                    <p><strong>Average Quiz Score:</strong> {{ "%.1f"|format(risk_summary.get('average_quiz_score', 0)) }}%</p>
+                    <p><strong>High Risk Employees:</strong> {{ risk_summary.get('high_risk', 0) }}</p>
+                    <p><strong>Medium Risk Employees:</strong> {{ risk_summary.get('medium_risk', 0) }}</p>
+                    <p><strong>Low Risk Employees:</strong> {{ risk_summary.get('low_risk', 0) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if dept_analysis and dept_analysis.get('departments') %}
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Department Breakdown</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Total Employees</th>
+                            <th>Clicked</th>
+                            <th>High Awareness</th>
+                            <th>Medium Awareness</th>
+                            <th>Low Awareness</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept, data in dept_analysis.get('departments', {}).items() %}
+                        <tr>
+                            <td><strong>{{ dept }}</strong></td>
+                            <td>{{ data.total }}</td>
+                            <td>{{ data.clicked }} ({{ "%.1f"|format(data.clicked / data.total * 100 if data.total > 0 else 0) }}%)</td>
+                            <td>{{ data.high_awareness }}</td>
+                            <td>{{ data.medium_awareness }}</td>
+                            <td>{{ data.low_awareness }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+    const awarenessCtx = document.getElementById('awarenessChart').getContext('2d');
+    new Chart(awarenessCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['High', 'Medium', 'Low'],
+            datasets: [{
+                data: [
+                    {{ risk_summary.get('high_awareness', 0) }},
+                    {{ risk_summary.get('medium_awareness', 0) }},
+                    {{ risk_summary.get('low_awareness', 0) }}
+                ],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    </script>
+
+    {% else %}
+    <div class="alert alert-info">
+        <p>Select a campaign to view awareness report. <a href="{{ url_for('awareness_report') }}">Go to reports</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

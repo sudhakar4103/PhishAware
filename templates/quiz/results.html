@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Results - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-{{ 'success' if quiz_result.passed else 'danger' }} text-white">
+                    <h4 class="mb-0">
+                        {% if quiz_result.passed %}
+                        ✓ Quiz Passed!
+                        {% else %}
+                        ✗ Quiz Failed - Please Try Again
+                        {% endif %}
+                    </h4>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Your Score</h6>
+                            <h3 class="text-{{ 'success' if quiz_result.passed else 'danger' }}">
+                                {{ "%.1f"|format(quiz_result.score) }}%
+                            </h3>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Time Taken</h6>
+                            <h3>{{ (quiz_result.time_taken // 60) }}:{{ "%02d"|format(quiz_result.time_taken % 60) }}</h3>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <p class="mb-1">Correct Answers</p>
+                                    <h5>{{ quiz_result.correct_answers }} / {{ quiz_result.total_questions }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <p class="mb-1">Passing Score Required</p>
+                                    <h5>70%</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5>Question Review</h5>
+                    {% for answer in answers %}
+                    <div class="card mb-3 border-{{ 'success' if answer.is_correct else 'danger' }}">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                {% if answer.is_correct %}
+                                <span class="badge bg-success">✓ Correct</span>
+                                {% else %}
+                                <span class="badge bg-danger">✗ Incorrect</span>
+                                {% endif %}
+                                {{ answer.question }}
+                            </h6>
+                            
+                            <p class="mb-2">
+                                <strong>Your Answer:</strong> {{ answer.options[answer.selected_answer] if answer.options|length > answer.selected_answer else 'Not answered' }}
+                            </p>
+                            
+                            {% if not answer.is_correct %}
+                            <p class="mb-2">
+                                <strong>Correct Answer:</strong> 
+                                <span class="text-success">{{ answer.options[answer.correct_answer] if answer.options|length > answer.correct_answer else 'Unknown' }}</span>
+                            </p>
+                            {% endif %}
+                            
+                            <p class="mb-0 small text-muted">
+                                <strong>Explanation:</strong> {{ answer.explanation }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <hr>
+
+                    <div class="alert alert-info">
+                        <strong>📚 Take-Away:</strong> Understanding phishing attacks and practicing good security hygiene are essential 
+                        skills in today's threat landscape. Your awareness helps protect the entire organization.
+                    </div>
+
+                    <div class="text-center">
+                        <p class="text-muted">Thank you for completing this security awareness training.</p>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-light text-center">
+                    <small class="text-muted">
+                        Campaign: {{ campaign.name }} | Completed: {{ quiz_result.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

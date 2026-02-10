@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Add Employees - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h3 class="mb-4">Add Employees to Campaign: {{ campaign.name }}</h3>
+
+            <div class="card">
+                <div class="card-body">
+                    <form action="{{ url_for('add_employees_to_campaign', campaign_id=campaign.campaign_id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="email_list" class="form-label">Employee Email List *</label>
+                            <textarea 
+                                class="form-control" 
+                                id="email_list" 
+                                name="email_list" 
+                                rows="10" 
+                                placeholder="Enter one email per line&#10;john.doe@company.com&#10;jane.smith@company.com&#10;bob.wilson@company.com" 
+                                required></textarea>
+                            <small class="form-text text-muted">
+                                Enter one email per line. Only valid email addresses will be added.
+                            </small>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>📝 Note:</strong> 
+                            <ul class="mb-0">
+                                <li>Each employee must have previously consented to this training</li>
+                                <li>Duplicate emails will be skipped</li>
+                                <li>Invalid email formats will be ignored</li>
+                                <li>New employee records will be created if needed</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Add Employees</button>
+                            <a href="{{ url_for('campaign_detail', campaign_id=campaign.campaign_id) }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Sample Email List</h6>
+                </div>
+                <div class="card-body">
+                    <code style="white-space: pre-wrap;">
+alice@company.com
+bob@company.com
+charlie@company.com
+diana@company.com
+eric@company.com
+                    </code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
