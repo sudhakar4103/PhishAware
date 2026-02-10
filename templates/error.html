@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Error - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">❌ {{ title }}</h5>
+                </div>
+                <div class="card-body text-center p-5">
+                    <p class="fs-3 text-danger mb-3">Error</p>
+                    <p class="lead">{{ message }}</p>
+                    
+                    <div class="mt-4">
+                        {% if 'admin_id' in session %}
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+                                Return to Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('login') }}" class="btn btn-primary">
+                                Return to Login
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

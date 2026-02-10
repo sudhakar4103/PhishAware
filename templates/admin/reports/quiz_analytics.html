@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Analytics Report - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h3 class="mb-4">Quiz Analytics Report</h3>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h6>Total Attempts</h6>
+                    <h3>{{ stats.get('total_attempts', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h6>Average Score</h6>
+                    <h3>{{ "%.1f"|format(stats.get('average_score', 0)) }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h6>Pass Rate</h6>
+                    <h3>{{ "%.1f"|format(stats.get('passing_rate', 0)) }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h6>Avg Time</h6>
+                    <h3>{{ "%.0f"|format(stats.get('average_time_seconds', 0) / 60) }} min</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if stats.get('total_attempts', 0) > 0 %}
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Pass/Fail Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="passFailChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Statistics Summary</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Employees Passed:</strong> {{ stats.get('employees_passed', 0) }}</p>
+                    <p><strong>Employees Failed:</strong> {{ stats.get('employees_failed', 0) }}</p>
+                    <p><strong>Average Score:</strong> {{ "%.2f"|format(stats.get('average_score', 0)) }}%</p>
+                    <p><strong>Passing Rate:</strong> {{ "%.2f"|format(stats.get('passing_rate', 0)) }}%</p>
+                    <p><strong>Average Time Taken:</strong> {{ "%.1f"|format(stats.get('average_time_seconds', 0)) }} seconds</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+    const passFailCtx = document.getElementById('passFailChart').getContext('2d');
+    new Chart(passFailCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Passed', 'Failed'],
+            datasets: [{
+                data: [
+                    {{ stats.get('employees_passed', 0) }},
+                    {{ stats.get('employees_failed', 0) }}
+                ],
+                backgroundColor: ['#28a745', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    </script>
+    {% else %}
+    <div class="alert alert-info">
+        No quiz data available yet. Employees must complete quizzes after clicking the phishing link.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

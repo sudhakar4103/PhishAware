@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Campaign: {{ campaign.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>{{ campaign.name }}</h3>
+        <div>
+            {% if campaign.status == 'draft' %}
+            <button class="btn btn-warning" onclick="sendEmails('{{ campaign.campaign_id }}')">Send Emails</button>
+            <a href="{{ url_for('add_employees_to_campaign', campaign_id=campaign.campaign_id) }}" class="btn btn-info">Add Employees</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>Total Employees</h6>
+                    <h3>{{ total_employees }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6>Emails Sent</h6>
+                    <h3>{{ sent_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6>Clicks</h6>
+                    <h3>{{ clicked_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>Completed Quiz</h6>
+                    <h3>{{ completed_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Campaign Information</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Type:</strong> {{ campaign.phishing_type | replace('_', ' ') | title }}</p>
+                    <p><strong>Status:</strong> <span class="badge bg-secondary">{{ campaign.status | title }}</span></p>
+                    <p><strong>Sender:</strong> {{ campaign.sender_name }} &lt;{{ campaign.sender_email }}&gt;</p>
+                    <p><strong>Subject:</strong> {{ campaign.subject_line }}</p>
+                    <p><strong>Created:</strong> {{ campaign.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    {% if campaign.description %}
+                    <p><strong>Description:</strong> {{ campaign.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>Send Rate:</strong> 
+                        {{ "%.1f"|format((sent_count/ total_employees * 100) if total_employees > 0 else 0) }}%
+                    </p>
+                    <p>
+                        <strong>Click Rate:</strong> 
+                        {{ "%.1f"|format((clicked_count / sent_count * 100) if sent_count > 0 else 0) }}%
+                    </p>
+                    <p>
+                        <strong>Completion Rate:</strong>
+                        {{ "%.1f"|format((completed_count / sent_count * 100) if sent_count > 0 else 0) }}%
+                    </p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>Awareness Level:</strong><br>
+                        High: {{ risk_summary.get('high_awareness', 0) }}<br>
+                        Medium: {{ risk_summary.get('medium_awareness', 0) }}<br>
+                        Low: {{ risk_summary.get('low_awareness', 0) }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Employee Results</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="employeeTable">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Clicked</th>
+                            <th>Quiz Score</th>
+                            <th>Awareness</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function sendEmails(campaignId) {
+    if (!confirm('Send phishing simulation emails to all pending employees?')) {
+        return;
+    }
+
+    fetch(`/admin/campaigns/${campaignId}/send-emails`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    })
+    .catch(e => {
+        alert('Error: ' + e);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadEmployees('{{ campaign.campaign_id }}');
+});
+
+function loadEmployees(campaignId) {
+    fetch(`/api/campaigns/${campaignId}/employees`)
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('employeeTableBody');
+            tbody.innerHTML = '';
+
+            data.employees.forEach(emp => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${emp.email}</td>
+                    <td><span class="badge bg-secondary">${emp.status}</span></td>
+                    <td>${emp.clicked ? '✓' : '✗'} ${emp.clicked_at ? `<small>(${new Date(emp.clicked_at).toLocaleString()})</small>` : ''}</td>
+                    <td>${emp.quiz_score ? emp.quiz_score.toFixed(1) + '%' : '-'}</td>
+                    <td><span class="badge bg-${emp.awareness_level === 'high' ? 'success' : emp.awareness_level === 'medium' ? 'warning' : 'danger'}">${emp.awareness_level}</span></td>
+                `;
+            });
+        });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "amazona-account-verify",
+    "name": "Amazona Account Verification",
+    "description": "Account security review with urgent verification button.",
+    "phishing_type": "credential_harvesting",
+    "sender_name": "Amazona Support",
+    "sender_email": "support@amazona.support",
+    "subject_line": "Action Required: Verify Your Amazona Account",
+    "html": "<p>Hi,</p>\n<p>We detected a new sign-in attempt and need you to verify your account to avoid temporary suspension.</p>\n<p><a href=\"{{tracking_link}}\" style=\"display:inline-block;padding:10px 16px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:4px;\">Verify Account</a></p>\n<p>Verification required within 24 hours.</p>\n<p>Thank you,<br>Amazona Security Team</p>"
+  },
+  {
+    "id": "docushare-secure-doc",
+    "name": "DocuShare Secure Document",
+    "description": "Shared document requires sign-in to view.",
+    "phishing_type": "credential_harvesting",
+    "sender_name": "DocuShare Notifications",
+    "sender_email": "no-reply@docushare-secure.support",
+    "subject_line": "New Secure Document: Q1 Compensation Review",
+    "html": "<p>Hello,</p>\n<p>A secure document was shared with you. Please sign in to view it.</p>\n<p><a href=\"{{tracking_link}}\" style=\"display:inline-block;padding:10px 16px;background:#0f766e;color:#fff;text-decoration:none;border-radius:4px;\">View Secure Document</a></p>\n<p>This link expires in 2 hours.</p>\n<p>DocuShare Team</p>"
+  },
+  {
+    "id": "paywave-invoice-attachment",
+    "name": "PayWave Invoice Attachment",
+    "description": "Invoice payment notice with attachment download.",
+    "phishing_type": "malware",
+    "sender_name": "PayWave Billing",
+    "sender_email": "billing@paywave-invoices.support",
+    "subject_line": "Invoice #88431 - Payment Overdue",
+    "html": "<p>Dear Customer,</p>\n<p>Your invoice is overdue. Please download the attached statement to avoid late fees.</p>\n<p><a href=\"{{tracking_link}}\" style=\"display:inline-block;padding:10px 16px;background:#b91c1c;color:#fff;text-decoration:none;border-radius:4px;\">Download Invoice</a></p>\n<p>If you already paid, disregard this notice.</p>\n<p>PayWave Billing</p>"
+  },
+  {
+    "id": "it-password-expiry",
+    "name": "IT Password Expiration",
+    "description": "Internal IT notice requiring immediate password update.",
+    "phishing_type": "urgent_action",
+    "sender_name": "IT Service Desk",
+    "sender_email": "it-desk@company-alerts.support",
+    "subject_line": "Your Password Expires Today",
+    "html": "<p>Hi Team Member,</p>\n<p>Your corporate password expires today. Update now to avoid account lockout.</p>\n<p><a href=\"{{tracking_link}}\" style=\"display:inline-block;padding:10px 16px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:4px;\">Update Password</a></p>\n<p>Regards,<br>IT Service Desk</p>"
+  },
+  {
+    "id": "hr-policy-ack",
+    "name": "HR Policy Acknowledgement",
+    "description": "Internal HR policy update requiring acknowledgement.",
+    "phishing_type": "urgent_action",
+    "sender_name": "HR Compliance",
+    "sender_email": "hr-compliance@company-policy.support",
+    "subject_line": "Immediate Action: New Remote Work Policy",
+    "html": "<p>Hello,</p>\n<p>We updated the remote work policy. Please acknowledge by end of day.</p>\n<p><a href=\"{{tracking_link}}\" style=\"display:inline-block;padding:10px 16px;background:#0ea5e9;color:#fff;text-decoration:none;border-radius:4px;\">Review Policy</a></p>\n<p>HR Compliance Team</p>"
+  }
+]

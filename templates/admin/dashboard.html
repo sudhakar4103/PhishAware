@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Admin Dashboard</h1>
+            <p class="text-muted">Welcome, {{ admin.username }}! Manage your phishing awareness campaigns.</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Campaigns</h6>
+                    <h3>{{ total_campaigns }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Employees</h6>
+                    <h3>{{ total_employees }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Clicks</h6>
+                    <h3>{{ total_clicks }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Click Rate</h6>
+                    <h3>
+                        {% if total_employees > 0 %}
+                            {{ "%.1f"|format((total_clicks / total_employees * 100)) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4>Quick Actions</h4>
+            <a href="{{ url_for('create_campaign') }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Create New Campaign
+            </a>
+            <a href="{{ url_for('campaigns_list') }}" class="btn btn-secondary">
+                <i class="bi bi-list"></i> View All Campaigns
+            </a>
+            <a href="{{ url_for('awareness_report') }}" class="btn btn-info">
+                <i class="bi bi-graph-up"></i> View Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Campaigns -->
+    <div class="row">
+        <div class="col-12">
+            <h4>Recent Campaigns</h4>
+            {% if campaigns %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Campaign Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Employees</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for campaign in campaigns[:5] %}
+                        <tr>
+                            <td><strong>{{ campaign.name }}</strong></td>
+                            <td><span class="badge bg-secondary">{{ campaign.phishing_type }}</span></td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if campaign.status == 'completed' else 'warning' if campaign.status == 'sent' else 'secondary' }}">
+                                    {{ campaign.status }}
+                                </span>
+                            </td>
+                            <td>{{ campaign.employees.count() }}</td>
+                            <td><small>{{ campaign.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                            <td>
+                                <a href="{{ url_for('campaign_detail', campaign_id=campaign.campaign_id) }}" class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No campaigns yet. <a href="{{ url_for('create_campaign') }}">Create one now</a>.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
