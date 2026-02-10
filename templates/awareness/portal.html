@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Phishing Awareness - {{ campaign.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">⚠️ Phishing Awareness Training</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <strong>🎓 Training Notice:</strong> You received a simulated phishing email as part of your organization's authorized security awareness training program. This is not a real security threat.
+                    </div>
+
+                    <h5 class="mb-3">What You Received: {{ campaign.phishing_type | replace('_', ' ') | title }}</h5>
+
+                    <!-- Phishing Type Specific Information -->
+                    {% if campaign.phishing_type == 'credential_harvesting' %}
+                    <div class="card mb-4 border-left-warning">
+                        <div class="card-body">
+                            <h6 class="card-title">Credential Harvesting Attack</h6>
+                            <p>
+                                This type of phishing aims to trick users into revealing sensitive information like usernames, passwords, or security details.
+                            </p>
+                            <h6>Red Flags You Should Have Spotted:</h6>
+                            <ul>
+                                <li>Requests for sensitive information via email</li>
+                                <li>Suspicious links that don't match official domain names</li>
+                                <li>Urgent language creating a sense of panic</li>
+                                <li>Poor grammar or spelling errors in official communications</li>
+                                <li>Sender email address that doesn't match the organization</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {% elif campaign.phishing_type == 'malware' %}
+                    <div class="card mb-4 border-left-danger">
+                        <div class="card-body">
+                            <h6 class="card-title">Malware Distribution Attack</h6>
+                            <p>
+                                This attack attempts to trick you into opening malicious attachments or downloading infected files that could compromise your system and data.
+                            </p>
+                            <h6>Red Flags You Should Have Spotted:</h6>
+                            <ul>
+                                <li>Unexpected attachments from unknown senders</li>
+                                <li>Executable files (.exe, .msi, .scr) disguised as documents</li>
+                                <li>Requests to enable macros or scripts</li>
+                                <li>Archive files that seem unusual (rarely used in legitimate business emails)</li>
+                                <li>Generic greetings instead of your name</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {% elif campaign.phishing_type == 'urgent_action' %}
+                    <div class="card mb-4 border-left-info">
+                        <div class="card-body">
+                            <h6 class="card-title">Urgent Action / CEO Fraud</h6>
+                            <p>
+                                These attacks use social engineering and artificial urgency to trick you into bypassing normal security procedures.
+                            </p>
+                            <h6>Red Flags You Should Have Spotted:</h6>
+                            <ul>
+                                <li>Artificial urgency and time pressure</li>
+                                <li>Threats of account closure or service disruption</li>
+                                <li>Requests for sensitive actions (wire transfers, password changes)</li>
+                                <li>Messages claiming to be from authority figures or executives</li>
+                                <li>Requests to "act quietly" or bypass normal procedures</li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- General Prevention Best Practices -->
+                    <div class="card mb-4 bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">🛡️ Prevention Best Practices</h6>
+                            <ol>
+                                <li><strong>Verify Sender Identity:</strong> Check the email address carefully. Hover over links to see the actual URL.</li>
+                                <li><strong>Never Click Immediately:</strong> Take time to assess emails before clicking links or opening attachments.</li>
+                                <li><strong>Check with IT:</strong> When in doubt, contact IT security before opening attachments or clicking links.</li>
+                                <li><strong>Use Multi-Factor Authentication:</strong> Enable MFA on all accounts to add an extra security layer.</li>
+                                <li><strong>Keep Software Updated:</strong> Regular updates patch security vulnerabilities.</li>
+                                <li><strong>Report Suspicious Emails:</strong> Forward suspicious emails to your IT/Security team.</li>
+                                <li><strong>Be Skeptical of Urgency:</strong> Attackers create artificial pressure to bypass careful thinking.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- Understanding Psychological Manipulation -->
+                    <div class="card mb-4 border-left-success">
+                        <div class="card-body">
+                            <h6 class="card-title">🧠 Psychological Manipulation Techniques</h6>
+                            <p>Phishing attacks often use psychological tactics:</p>
+                            <ul>
+                                <li><strong>Authority:</strong> Impersonating trusted figures (CEO, IT, Bank officials)</li>
+                                <li><strong>Urgency:</strong> Creating time pressure to bypass rational decision-making</li>
+                                <li><strong>Fear:</strong> Threatening consequences (account termination, legal action)</li>
+                                <li><strong>Trust:</strong> Using familiar brand names or logos</li>
+                                <li><strong>Curiosity:</strong> Intriguing subject lines to encourage clicks</li>
+                                <li><strong>Reciprocity:</strong> Offering something (free gift, discount) in exchange for information</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Next Steps -->
+                    <div class="alert alert-success mb-4">
+                        <strong>✅ Next Step:</strong> Complete the quiz below to reinforce your security awareness. You'll receive instant feedback on your answers.
+                    </div>
+
+                    <div class="text-center">
+                        <a href="{{ url_for('quiz_page', campaign_id=campaign.campaign_id, tracking_token=tracking_token) }}" class="btn btn-primary btn-lg">
+                            Proceed to Quiz →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4 border-info">
+                <div class="card-body">
+                    <p class="mb-0 text-muted">
+                        <small>
+                            <strong>📋 Disclaimer:</strong> This is an authorized security awareness training simulation.<br>
+                            No malicious content was delivered. Your participation helps improve organizational security awareness.
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

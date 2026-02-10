@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Click Statistics Report - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h3 class="mb-4">Click Statistics Report</h3>
+
+    <div class="row mb-4">
+        <div class="col-lg-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5>Total Clicks</h5>
+                    <h3>{{ stats.get('total_clicks', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if stats.get('total_clicks', 0) > 0 %}
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Device Breakdown</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="deviceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Browser Breakdown</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="browserChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">Click Events</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Clicked At</th>
+                        <th>Device Type</th>
+                        <th>Browser</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for click in stats.get('clicks', []) %}
+                    <tr>
+                        <td><small>{{ click.clicked_at | slice(0, 19) }}</small></td>
+                        <td><span class="badge bg-secondary">{{ click.device_type }}</span></td>
+                        <td>{{ click.browser }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+    // Device Chart
+    const deviceCtx = document.getElementById('deviceChart').getContext('2d');
+    new Chart(deviceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys({{ stats.get('device_breakdown', {}) | tojson }}),
+            datasets: [{
+                data: Object.values({{ stats.get('device_breakdown', {}) | tojson }}),
+                backgroundColor: ['#007bff', '#28a745', '#ffc107']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Browser Chart
+    const browserCtx = document.getElementById('browserChart').getContext('2d');
+    new Chart(browserCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys({{ stats.get('browser_breakdown', {}) | tojson }}),
+            datasets: [{
+                label: 'Clicks',
+                data: Object.values({{ stats.get('browser_breakdown', {}) | tojson }}),
+                backgroundColor: '#17a2b8'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    </script>
+    {% else %}
+    <div class="alert alert-info">
+        No click data available yet. Send a campaign and wait for employees to click the links.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

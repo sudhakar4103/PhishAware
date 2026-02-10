@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Login - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h3 class="card-title text-center mb-4">
+                        <strong>PhishAware</strong>
+                    </h3>
+                    <p class="text-center text-muted mb-4">
+                        Admin Login - Phishing Awareness Training Platform
+                    </p>
+                    
+                    <form method="POST" action="{{ url_for('login') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                            <small class="form-text text-muted">Default: admin</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <small class="form-text text-muted">Default: admin123</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">Login</button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <small>
+                            <strong>Demo Credentials:</strong><br>
+                            Username: <code>admin</code><br>
+                            Password: <code>admin123</code><br><br>
+                            <em>⚠️ Change these credentials in production!</em>
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4 border-warning">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2">🔒 Security Notice</h6>
+                    <small>
+                        This platform is designed for <strong>authorized employee training only</strong>.
+                        All activities are logged for compliance and auditing purposes.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
