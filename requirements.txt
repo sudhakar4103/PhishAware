@@ -1,0 +1,14 @@
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+SQLAlchemy==2.0.21
+python-dotenv==1.0.0
+Werkzeug==2.3.7
+Jinja2==3.1.2
+Mailtrap==2.1.0
+sendgrid==6.11.0
+user-agent==0.1.10
+ua-parser==1.0.1
+python-dateutil==2.8.2
+pytz==2023.3
+requests==2.31.0
+gunicorn==21.2.0
