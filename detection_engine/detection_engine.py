@@ -1,5 +1,5 @@
 """
-Risk scoring and awareness level calculation engine.
+Risk scoring and awareness level calculation engine.Version: 1.0.0
 Analyzes email behavior and quiz performance to determine awareness levels.
 """
 

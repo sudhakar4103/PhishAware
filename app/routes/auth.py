@@ -1,5 +1,5 @@
 """
-Authentication Blueprint
+Authentication BlueprintVersion: 1.0.0
 Handles user login and logout functionality.
 """
 

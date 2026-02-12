@@ -1,5 +1,5 @@
 """
-Admin Blueprint
+Admin BlueprintVersion: 1.0.0
 Handles admin dashboard and reports.
 """
 

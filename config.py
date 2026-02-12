@@ -1,7 +1,11 @@
 """
 Configuration management for PhishAware Training Platform.
+Version: 1.0.0
+Date: February 12, 2026
+
 Handles environment variables and app configuration.
 """
+__version__ = '1.0.0'
 
 import os
 from datetime import timedelta

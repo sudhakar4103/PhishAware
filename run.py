@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """
 PhishAware Application Entry Point
+Version: 1.0.0
+Date: February 12, 2026
 
 Run the Flask application server.
 Usage: python run.py
 """
+__version__ = '1.0.0'
 
 import os
 import sys

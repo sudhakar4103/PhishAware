@@ -1,5 +1,5 @@
 """
-Tracking Blueprint
+Tracking BlueprintVersion: 1.0.0
 Handles click tracking for phishing links.
 """
 

@@ -1,5 +1,5 @@
 """
-Email service for sending phishing simulation emails.
+Email service for sending phishing simulation emails.Version: 1.0.0
 Supports Mailtrap, SendGrid, and test/log modes.
 """
 

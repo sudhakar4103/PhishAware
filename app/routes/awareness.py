@@ -1,5 +1,5 @@
 """
-Awareness Blueprint
+Awareness BlueprintVersion: 1.0.0
 Handles awareness portal and quiz functionality.
 """
 

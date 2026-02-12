@@ -1,7 +1,11 @@
 """
 PhishAware Application Factory
+Version: 1.0.0
+Date: February 12, 2026
+
 Creates and configures the Flask application with blueprints and extensions.
 """
+__version__ = '1.0.0'
 
 import os
 import logging

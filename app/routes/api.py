@@ -1,5 +1,5 @@
 """
-API Blueprint
+API BlueprintVersion: 1.0.0
 Handles JSON API endpoints for AJAX calls.
 """
 

@@ -1,6 +1,5 @@
 """
-Decorators for PhishAware application.
-"""
+Decorators for PhishAware application.Version: 1.0.0"""
 
 from functools import wraps
 from flask import session, flash, redirect, url_for

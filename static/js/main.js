@@ -1,4 +1,8 @@
-/* PhishAware Platform JavaScript */
+/*
+ * PhishAware Platform JavaScript
+ * Version: 1.0.0
+ * Date: February 12, 2026
+ */
 
 // Utility Functions
 

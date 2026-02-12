@@ -1,6 +1,5 @@
 """
-Helper utilities for PhishAware application.
-"""
+Helper utilities for PhishAware application.Version: 1.0.0"""
 
 import uuid
 import logging

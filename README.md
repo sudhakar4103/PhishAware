@@ -1,5 +1,8 @@
 # PhishAware - Phishing Awareness Training Platform
 
+**Version:** 1.0.0  
+**Release Date:** February 12, 2026
+
 ## Overview
 
 Phishing simulation training platform for authorized employee security awareness testing. Admins send controlled phishing emails, track clicks, and generate awareness reports. **⚠️ Requires explicit employee consent.**

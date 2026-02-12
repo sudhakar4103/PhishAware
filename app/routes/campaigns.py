@@ -1,5 +1,5 @@
 """
-Campaigns Blueprint
+Campaigns BlueprintVersion: 1.0.0
 Handles campaign CRUD operations and email sending.
 """
 
