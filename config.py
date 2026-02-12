@@ -1,7 +1,11 @@
 """
 Configuration management for PhishAware Training Platform.
+Version: 1.0.0
+Date: February 12, 2026
+
 Handles environment variables and app configuration.
 """
+__version__ = '1.0.0'
 
 import os
 from datetime import timedelta
@@ -39,6 +43,7 @@ class Config:
     # App configuration
     SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'phishing-simulator@demo-company.com')
     SENDER_NAME = os.getenv('SENDER_NAME', 'Employee Training Portal')
+    SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
     
     # Tracking and logging
     LOG_FILE = 'logs/phishaware.log'

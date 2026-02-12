@@ -245,6 +245,10 @@ def send_phishing_simulation_email(campaign, campaign_employee, employee):
         dict: Result of email sending
     """
     try:
+        from flask import current_app
+        
+        # Get email service
+        email_service = get_email_service()
         from tracking.click_tracker import generate_tracking_token
         from flask import url_for, current_app
         
