@@ -8,6 +8,7 @@
         <h3>{{ campaign.name }}</h3>
         <div>
             {% if campaign.status == 'draft' %}
+            <button class="btn btn-secondary" onclick="testEmail('{{ campaign.campaign_id }}')">Test Email</button>
             <button class="btn btn-warning" onclick="sendEmails('{{ campaign.campaign_id }}')">Send Emails</button>
             <a href="{{ url_for('add_employees_to_campaign', campaign_id=campaign.campaign_id) }}" class="btn btn-info">Add Employees</a>
             {% endif %}
@@ -124,6 +125,22 @@
 </div>
 
 <script>
+function testEmail(campaignId) {
+    fetch(`/admin/campaigns/${campaignId}/test-email`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Test email sent successfully! Check your inbox/spam folder.');
+        } else {
+            alert('✗ Test email failed: ' + data.message);
+        }
+    })
+    .catch(e => alert('Error: ' + e));
+}
+
 function sendEmails(campaignId) {
     if (!confirm('Send phishing simulation emails to all pending employees?')) {
         return;

@@ -37,6 +37,8 @@ def create_admin_user():
             if response != 'y':
                 return
             existing_admin = Admin.query.filter_by(username='admin').first()
+            # Delete campaigns first to avoid foreign key constraint
+            Campaign.query.filter_by(created_by_id=existing_admin.id).delete()
             db.session.delete(existing_admin)
             db.session.commit()
         

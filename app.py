@@ -336,14 +336,15 @@ def send_campaign_emails(campaign_id):
                 failed_count += 1
                 logger.warning(f'Failed to send email to {employee.email}')
         
-        campaign.status = 'sent'
+        if sent_count > 0:
+            campaign.status = 'sent'
         db.session.commit()
         
         log_audit('SEND_CAMPAIGN_EMAILS', 'campaign', campaign_id,
                  f'Sent {sent_count}, Failed {failed_count}')
         
         return jsonify({
-            'success': True,
+            'success': sent_count > 0 or failed_count == 0,
             'message': f'Sent {sent_count} emails, {failed_count} failed',
             'sent': sent_count,
             'failed': failed_count
@@ -351,6 +352,53 @@ def send_campaign_emails(campaign_id):
     
     except Exception as e:
         logger.error(f'Error sending emails: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/campaigns/<campaign_id>/test-email', methods=['POST'])
+@login_required
+def test_email(campaign_id):
+    """Send a test email to admin's email to verify email configuration."""
+    campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
+    
+    if not campaign or campaign.created_by_id != session['admin_id']:
+        return jsonify({'success': False, 'message': 'Campaign not found'}), 404
+    
+    try:
+        admin = Admin.query.get(session['admin_id'])
+        
+        # Create a test employee record temporarily
+        test_token = str(uuid.uuid4())
+        base_url = request.host_url.rstrip('/')
+        tracking_link = generate_tracking_link(base_url, str(campaign.campaign_id), test_token)
+        
+        # Generate test email
+        from email_service.mailer import generate_html_email, get_email_service
+        
+        html_content = generate_html_email(
+            campaign,
+            admin.email,
+            tracking_link,
+            campaign.phishing_type
+        )
+        
+        email_service = get_email_service()
+        result = email_service.send_email(
+            to_email=admin.email,
+            subject=f"[TEST] {campaign.subject_line}",
+            html_content=html_content,
+            text_content=f"This is a test email. Click here: {tracking_link}"
+        )
+        
+        if result.get('success'):
+            log_audit('TEST_EMAIL_SENT', 'campaign', campaign_id,
+                     f'Test email sent to {admin.email}')
+            logger.info(f'Test email sent to {admin.email}')
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        logger.error(f'Error sending test email: {str(e)}', exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

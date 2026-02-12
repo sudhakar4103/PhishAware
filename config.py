@@ -39,6 +39,7 @@ class Config:
     # App configuration
     SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'phishing-simulator@demo-company.com')
     SENDER_NAME = os.getenv('SENDER_NAME', 'Employee Training Portal')
+    SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
     
     # Tracking and logging
     LOG_FILE = 'logs/phishaware.log'
