@@ -1,6 +1,6 @@
 """
-Email service for sending phishing simulation emails.Version: 1.0.0
-Supports Mailtrap, SendGrid, and test/log modes.
+Email service for sending phishing simulation emails.
+Supports Mailtrap and SendGrid as email providers.
 """
 
 import smtplib
@@ -58,15 +58,6 @@ class MailtrapEmailService(EmailService):
             dict: Success status and message
         """
         try:
-            if not self.username or not self.password:
-                logger.warning(f'Mailtrap not configured. Demo mode: Email would be sent to {to_email}')
-                return {
-                    'success': True,
-                    'message': 'Email sent (demo mode - Mailtrap not configured)',
-                    'timestamp': datetime.utcnow().isoformat(),
-                    'mode': 'demo'
-                }
-            
             # Create message
             message = MIMEMultipart('alternative')
             message['Subject'] = subject
@@ -83,10 +74,10 @@ class MailtrapEmailService(EmailService):
                 server.login(self.username, self.password)
                 server.sendmail(self.sender_email, to_email, message.as_string())
             
-            logger.info(f'Email sent successfully to {to_email} via Mailtrap')
+            logger.info(f'Email sent successfully to {to_email}')
             return {
                 'success': True,
-                'message': 'Email sent successfully via Mailtrap',
+                'message': 'Email sent successfully',
                 'timestamp': datetime.utcnow().isoformat()
             }
         
@@ -131,15 +122,6 @@ class SendGridEmailService(EmailService):
             dict: Success status and message
         """
         try:
-            if not self.api_key:
-                logger.warning(f'SendGrid not configured. Demo mode: Email would be sent to {to_email}')
-                return {
-                    'success': True,
-                    'message': 'Email sent (demo mode - SendGrid not configured)',
-                    'timestamp': datetime.utcnow().isoformat(),
-                    'mode': 'demo'
-                }
-            
             from sendgrid import SendGridAPIClient
             from sendgrid.helpers.mail import Mail, Email, To, Content
             
@@ -158,7 +140,7 @@ class SendGridEmailService(EmailService):
             
             return {
                 'success': response.status_code in [200, 201, 202],
-                'message': 'Email sent successfully via SendGrid',
+                'message': 'Email sent successfully',
                 'status_code': response.status_code,
                 'timestamp': datetime.utcnow().isoformat()
             }
@@ -222,30 +204,24 @@ def generate_html_email(campaign, employee_email, tracking_link, phishing_type):
     Returns:
         str: HTML email content
     """
-    # Pixel tracker for email open tracking (optional)
-    pixel_tracker = f'<img src="{tracking_link}?action=open" width="1" height="1" alt="" style="display:none;" />'
+    # Pixel tracker for email open tracking
+    pixel_tracker = f'<img src="{tracking_link}?action=open" width="1" height="1" alt="" />'
     
     # Create click link with tracker
     click_link = f'{tracking_link}?action=click'
     
-    # Replace tracking link placeholder in template with actual link
     template_html = campaign.email_template or ''
     template_html = template_html.replace('{{tracking_link}}', click_link)
     template_html = template_html.replace('{{ tracking_link }}', click_link)
     template_html = template_html.replace('{{TRACKING_LINK}}', click_link)
-    
+
     html_content = f"""
     <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <body style="font-family: Arial, sans-serif; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto;">
             {template_html}
-            <hr style="border: none; border-top: 1px solid #ddd; margin-top: 30px;">
-            <p style="margin-top: 20px; font-size: 11px; color: #999; text-align: center;">
-                <em>🔒 Security Notice: This is a simulation for authorized security awareness training only.</em>
+            <p style="margin-top: 20px; font-size: 12px; color: #999;">
+                <em>Training Disclaimer: This is a simulation for authorized security awareness training only.</em>
             </p>
         </div>
         {pixel_tracker}
@@ -273,6 +249,8 @@ def send_phishing_simulation_email(campaign, campaign_employee, employee):
         
         # Get email service
         email_service = get_email_service()
+        from tracking.click_tracker import generate_tracking_token
+        from flask import url_for, current_app
         
         # Generate tracking token
         tracking_token = campaign_employee.tracking_token
@@ -289,23 +267,33 @@ def send_phishing_simulation_email(campaign, campaign_employee, employee):
             campaign.phishing_type
         )
         
+        # Get email service
+        email_service = get_email_service()
+        
         # Send email
         result = email_service.send_email(
             to_email=employee.email,
             subject=campaign.subject_line,
             html_content=html_content,
-            text_content=f"Please view this email in HTML format. Click here: {tracking_link}"
+            text_content=campaign.subject_line
         )
         
-        if result.get('success'):
-            logger.info(f'Phishing simulation email sent to {employee.email} for campaign {campaign.campaign_id}')
+        # Log the attempt
+        if result['success']:
+            logger.info(
+                f'Phishing simulation email sent to {employee.email} '
+                f'for campaign {campaign.name}'
+            )
         else:
-            logger.warning(f'Failed to send email to {employee.email}: {result.get("message")}')
+            logger.error(
+                f'Failed to send phishing simulation email to {employee.email}: '
+                f'{result.get("message", "Unknown error")}'
+            )
         
         return result
     
     except Exception as e:
-        logger.error(f'Error sending phishing simulation email to {employee.email}: {str(e)}', exc_info=True)
+        logger.error(f'Error in send_phishing_simulation_email: {str(e)}')
         return {
             'success': False,
             'message': f'Error: {str(e)}',

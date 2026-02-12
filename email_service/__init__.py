@@ -1,1 +1,1 @@
-"""Email service module for PhishAware."""
+# Email Service Module
