@@ -222,7 +222,7 @@ def send_campaign_emails(campaign_id):
 @campaigns_bp.route('/<campaign_id>/test-email', methods=['POST'])
 @login_required
 def test_email(campaign_id):
-    """Send a test email to admin's email to verify email configuration."""
+    """Send a test email to a selected recipient or campaign employee."""
     campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
     
     if not campaign or campaign.created_by_id != session['admin_id']:
@@ -230,6 +230,18 @@ def test_email(campaign_id):
     
     try:
         admin = Admin.query.get(session['admin_id'])
+        payload = request.get_json(silent=True) or {}
+        recipient_email = (request.form.get('test_recipient') or payload.get('test_recipient') or '').strip()
+
+        if not recipient_email:
+            first_campaign_employee = CampaignEmployee.query.filter_by(campaign_id=campaign.id).first()
+            if first_campaign_employee:
+                recipient = Employee.query.get(first_campaign_employee.employee_id)
+                if recipient and recipient.email:
+                    recipient_email = recipient.email
+
+        if not recipient_email:
+            recipient_email = admin.email
         
         # Create a test employee record temporarily
         test_token = str(uuid.uuid4())
@@ -239,14 +251,14 @@ def test_email(campaign_id):
         # Generate test email
         html_content = generate_html_email(
             campaign,
-            admin.email,
+            recipient_email,
             tracking_link,
             campaign.phishing_type
         )
         
         email_service = get_email_service()
         result = email_service.send_email(
-            to_email=admin.email,
+            to_email=recipient_email,
             subject=f"[TEST] {campaign.subject_line}",
             html_content=html_content,
             text_content=f"This is a test email. Click here: {tracking_link}"
@@ -254,9 +266,13 @@ def test_email(campaign_id):
         
         if result.get('success'):
             log_audit('TEST_EMAIL_SENT', 'campaign', campaign_id,
-                     f'Test email sent to {admin.email}')
-            logger.info(f'Test email sent to {admin.email}')
+                     f'Test email sent to {recipient_email}')
+            logger.info(f'Test email sent to {recipient_email}')
         
+        result['recipient'] = recipient_email
+        result['provider'] = getattr(email_service, 'provider', None)
+        result['smtp_host'] = getattr(email_service, 'host', None)
+        result['smtp_port'] = getattr(email_service, 'port', None)
         return jsonify(result)
     
     except Exception as e:
