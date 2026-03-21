@@ -24,14 +24,14 @@ Mailtrap provides a safe inbox for testing. Emails go to your Mailtrap inbox ins
 #### Setup:
 1. Sign up at [mailtrap.io](https://mailtrap.io)
 2. Create an inbox
-3. Get credentials from **Integrations** → **SMTP**
+3. Get credentials from **Integrations** , **SMTP**
 4. Add to `.env`:
    ```
    EMAIL_PROVIDER=mailtrap
    MAILTRAP_USERNAME=your_mailtrap_username
    MAILTRAP_PASSWORD=your_mailtrap_password
-   MAILTRAP_HOST=live.mailtrap.io
-   MAILTRAP_PORT=465
+   MAILTRAP_HOST=sandbox.smtp.mailtrap.io
+   MAILTRAP_PORT=587
    ```
 
 #### Test:
@@ -83,8 +83,8 @@ EMAIL_PROVIDER=mailtrap
 # Mailtrap Configuration (for testing)
 MAILTRAP_USERNAME=your_mailtrap_username
 MAILTRAP_PASSWORD=your_mailtrap_password
-MAILTRAP_HOST=live.mailtrap.io
-MAILTRAP_PORT=465
+MAILTRAP_HOST=sandbox.smtp.mailtrap.io
+MAILTRAP_PORT=587
 
 # SendGrid Configuration (for production)
 # SENDGRID_API_KEY=your_sendgrid_api_key

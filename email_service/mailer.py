@@ -7,10 +7,18 @@ import smtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
-import uuid
+import datetime
+import sys
+from pathlib import Path
 
-from config import Config
+try:
+    import config
+except ModuleNotFoundError:
+    # Allow running this module directly by adding project root to sys.path.
+    project_root = Path(__file__).resolve().parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    import config
 
 
 logger = logging.getLogger(__name__)
@@ -22,8 +30,8 @@ class EmailService:
     def __init__(self, provider='mailtrap'):
         """Initialize email service with specified provider."""
         self.provider = provider
-        self.sender_email = Config.SENDER_EMAIL
-        self.sender_name = Config.SENDER_NAME
+        self.sender_email = config.Config.SENDER_EMAIL
+        self.sender_name = config.Config.SENDER_NAME
         
     def send_email(self, to_email, subject, html_content, text_content=None):
         """Send email - implemented by subclasses."""
@@ -36,13 +44,35 @@ class MailtrapEmailService(EmailService):
     def __init__(self):
         """Initialize Mailtrap email service."""
         super().__init__('mailtrap')
-        self.host = Config.MAILTRAP_HOST
-        self.port = Config.MAILTRAP_PORT
-        self.username = Config.MAILTRAP_USERNAME
-        self.password = Config.MAILTRAP_PASSWORD
+        self.host = self._normalize_mailtrap_host(config.Config.MAILTRAP_HOST)
+        self.port = config.Config.MAILTRAP_PORT
+        self.username = config.Config.MAILTRAP_USERNAME
+        self.password = config.Config.MAILTRAP_PASSWORD
+
+        # Mailtrap sandbox commonly uses STARTTLS on 587/2525.
+        if self.host == 'sandbox.smtp.mailtrap.io' and self.port == 465:
+            logger.warning('MAILTRAP_PORT=465 with sandbox host can fail SSL handshake; using 587 STARTTLS')
+            self.port = 587
         
         if not self.username or not self.password:
             logger.warning('Mailtrap credentials not configured')
+
+    @staticmethod
+    def _normalize_mailtrap_host(host):
+        """Map legacy Mailtrap host values to current SMTP hostnames."""
+        normalized = (host or '').strip().lower()
+
+        legacy_map = {
+            'live.mailtrap.io': 'live.smtp.mailtrap.io',
+            'mailtrap.io': 'sandbox.smtp.mailtrap.io'
+        }
+
+        if normalized in legacy_map:
+            updated = legacy_map[normalized]
+            logger.warning('Updated legacy Mailtrap host %s to %s', normalized, updated)
+            return updated
+
+        return normalized or 'sandbox.smtp.mailtrap.io'
     
     def send_email(self, to_email, subject, html_content, text_content=None):
         """
@@ -58,6 +88,23 @@ class MailtrapEmailService(EmailService):
             dict: Success status and message
         """
         try:
+            if not self.username or not self.password:
+                logger.warning(f'Mailtrap not configured. Demo mode: Email would be sent to {to_email}')
+                return {
+                    'success': True,
+                    'message': 'Email sent (demo mode - Mailtrap not configured)',
+                    'timestamp': datetime.datetime.utcnow().isoformat(),
+                    'mode': 'demo'
+                }
+
+            logger.info(
+                'Mailtrap SMTP send attempt host=%s port=%s user=%s to=%s',
+                self.host,
+                self.port,
+                self.username,
+                to_email
+            )
+            
             # Create message
             message = MIMEMultipart('alternative')
             message['Subject'] = subject
@@ -69,31 +116,64 @@ class MailtrapEmailService(EmailService):
                 message.attach(MIMEText(text_content, 'plain'))
             message.attach(MIMEText(html_content, 'html'))
             
-            # Send via Mailtrap
-            with smtplib.SMTP_SSL(self.host, self.port) as server:
+            # Use SSL on 465, STARTTLS for other SMTP ports.
+            if self.port == 465:
+                server_ctx = smtplib.SMTP_SSL(self.host, self.port)
+            else:
+                server_ctx = smtplib.SMTP(self.host, self.port)
+
+            with server_ctx as server:
+                if self.port != 465:
+                    server.starttls()
                 server.login(self.username, self.password)
                 server.sendmail(self.sender_email, to_email, message.as_string())
             
             logger.info(f'Email sent successfully to {to_email}')
             return {
                 'success': True,
-                'message': 'Email sent successfully',
-                'timestamp': datetime.utcnow().isoformat()
+                'message': 'Email sent successfully via Mailtrap',
+                'timestamp': datetime.datetime.utcnow().isoformat()
             }
         
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(
+                'SMTP authentication failed for host=%s port=%s user=%s: %s',
+                self.host,
+                self.port,
+                self.username,
+                str(e)
+            )
+            return {
+                'success': False,
+                'message': (
+                    f'SMTP authentication failed on {self.host}:{self.port}. '
+                    'Verify Mailtrap SMTP username/password for this inbox.'
+                ),
+                'timestamp': datetime.datetime.utcnow().isoformat()
+            }
         except smtplib.SMTPException as e:
             logger.error(f'SMTP error sending to {to_email}: {str(e)}')
             return {
                 'success': False,
                 'message': f'SMTP error: {str(e)}',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.datetime.utcnow().isoformat()
+            }
+        except OSError as e:
+            logger.error(f'Network/DNS error connecting to SMTP host {self.host}:{self.port}: {str(e)}')
+            return {
+                'success': False,
+                'message': (
+                    f'Network error connecting to SMTP host {self.host}:{self.port}. '
+                    f'Please verify MAILTRAP_HOST/MAILTRAP_PORT and network DNS access. ({str(e)})'
+                ),
+                'timestamp': datetime.datetime.utcnow().isoformat()
             }
         except Exception as e:
             logger.error(f'Unexpected error sending to {to_email}: {str(e)}')
             return {
                 'success': False,
                 'message': f'Error: {str(e)}',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.datetime.utcnow().isoformat()
             }
 
 
@@ -103,7 +183,7 @@ class SendGridEmailService(EmailService):
     def __init__(self):
         """Initialize SendGrid email service."""
         super().__init__('sendgrid')
-        self.api_key = Config.SENDGRID_API_KEY
+        self.api_key = config.Config.SENDGRID_API_KEY
         
         if not self.api_key:
             logger.warning('SendGrid API key not configured')
@@ -122,6 +202,15 @@ class SendGridEmailService(EmailService):
             dict: Success status and message
         """
         try:
+            if not self.api_key:
+                logger.warning(f'SendGrid not configured. Demo mode: Email would be sent to {to_email}')
+                return {
+                    'success': True,
+                    'message': 'Email sent (demo mode - SendGrid not configured)',
+                    'timestamp': datetime.datetime.utcnow().isoformat(),
+                    'mode': 'demo'
+                }
+            
             from sendgrid import SendGridAPIClient
             from sendgrid.helpers.mail import Mail, Email, To, Content
             
@@ -140,9 +229,9 @@ class SendGridEmailService(EmailService):
             
             return {
                 'success': response.status_code in [200, 201, 202],
-                'message': 'Email sent successfully',
+                'message': 'Email sent successfully via SendGrid',
                 'status_code': response.status_code,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.datetime.utcnow().isoformat()
             }
         
         except ImportError:
@@ -150,14 +239,14 @@ class SendGridEmailService(EmailService):
             return {
                 'success': False,
                 'message': 'SendGrid library not installed',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.datetime.utcnow().isoformat()
             }
         except Exception as e:
             logger.error(f'SendGrid error: {str(e)}')
             return {
                 'success': False,
                 'message': f'Error: {str(e)}',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.datetime.utcnow().isoformat()
             }
 
 
@@ -168,7 +257,7 @@ def get_email_service():
     Returns:
         EmailService: Configured email service instance
     """
-    provider = Config.EMAIL_PROVIDER.lower()
+    provider = config.Config.EMAIL_PROVIDER.lower()
     
     if provider == 'sendgrid':
         return SendGridEmailService()
@@ -297,5 +386,5 @@ def send_phishing_simulation_email(campaign, campaign_employee, employee):
         return {
             'success': False,
             'message': f'Error: {str(e)}',
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.datetime.utcnow().isoformat()
         }

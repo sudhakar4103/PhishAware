@@ -9,6 +9,14 @@ __version__ = '1.0.0'
 
 import os
 from datetime import timedelta
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+# Load environment variables from project .env for direct python execution.
+PROJECT_ROOT = Path(__file__).resolve().parent
+load_dotenv(PROJECT_ROOT / '.env')
 
 
 class Config:
@@ -34,8 +42,8 @@ class Config:
     # Mailtrap Configuration
     MAILTRAP_USERNAME = os.getenv('MAILTRAP_USERNAME', '')
     MAILTRAP_PASSWORD = os.getenv('MAILTRAP_PASSWORD', '')
-    MAILTRAP_HOST = os.getenv('MAILTRAP_HOST', 'mailtrap.io')
-    MAILTRAP_PORT = int(os.getenv('MAILTRAP_PORT', 465))
+    MAILTRAP_HOST = os.getenv('MAILTRAP_HOST', 'sandbox.smtp.mailtrap.io')
+    MAILTRAP_PORT = int(os.getenv('MAILTRAP_PORT', 587))
     
     # SendGrid Configuration
     SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
