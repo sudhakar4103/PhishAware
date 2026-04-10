@@ -7,6 +7,7 @@ __version__ = '1.0.0'
 
 import os
 import logging
+import re
 from datetime import datetime
 import uuid
 import json
@@ -15,6 +16,10 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFError
 
 from config import get_config
 from database.models import db, Admin, Campaign, Employee, CampaignEmployee, QuizResult, RiskScore, AuditLog
@@ -28,9 +33,20 @@ from phishing_templates import get_phishing_templates, get_phishing_template_by_
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(get_config())
+if not app.config.get('DEBUG', False):
+    try:
+        get_config().validate()
+    except AttributeError:
+        pass  # Only ProductionConfig has validate()
+
+# Initialize rate limiter
+limiter = Limiter(app=app, key_func=get_remote_address, default_limits=["200/day", "50/hour"])
 
 # Initialize database
 db.init_app(app)
+
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
 
 # Setup logging
 logging.basicConfig(
@@ -53,6 +69,14 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'admin_id' not in session:
+            wants_json = (
+                request.path.startswith('/api/')
+                or request.is_json
+                or 'application/json' in (request.headers.get('Accept', '') or '').lower()
+                or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            )
+            if wants_json:
+                return jsonify({'success': False, 'message': 'Authentication required'}), 401
             flash('Please log in first', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -60,9 +84,14 @@ def login_required(f):
 
 
 def get_client_ip():
-    """Get client IP address from request."""
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    """Get client IP address. Trusts X-Forwarded-For only if app is behind a proxy."""
+    forwarded_for = request.headers.get('X-Forwarded-For')
+    if forwarded_for and app.config.get('TRUST_PROXY', False):
+        # Only trust this header if explicitly configured to do so
+        ip = forwarded_for.split(',')[0].strip()
+        # Basic sanity check - reject obviously forged values
+        if ip and ip != '127.0.0.1' and len(ip) < 46:
+            return ip
     return request.remote_addr
 
 
@@ -96,6 +125,7 @@ def index():
     return redirect(url_for('login'))
 
 
+@limiter.limit("10/minute")
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Admin login."""
@@ -122,6 +152,7 @@ def login():
     return render_template('login.html')
 
 
+@limiter.limit("20/minute")
 @app.route('/logout', methods=['POST'])
 def logout():
     """Admin logout."""
@@ -142,7 +173,11 @@ def logout():
 def admin_dashboard():
     """Admin dashboard overview."""
     admin = Admin.query.get(session['admin_id'])
-    campaigns = Campaign.query.filter_by(created_by_id=admin.id).all()
+    page = request.args.get('page', 1, type=int)
+    campaigns_paginated = Campaign.query.filter_by(created_by_id=admin.id)\
+        .order_by(Campaign.created_at.desc())\
+        .paginate(page=page, per_page=20, error_out=False)
+    campaigns = campaigns_paginated.items
     
     total_campaigns = len(campaigns)
     total_employees = len(set(
@@ -169,7 +204,10 @@ def admin_dashboard():
 def campaigns_list():
     """List all campaigns for admin."""
     admin = Admin.query.get(session['admin_id'])
-    campaigns = Campaign.query.filter_by(created_by_id=admin.id).order_by(Campaign.created_at.desc()).all()
+    page = request.args.get('page', 1, type=int)
+    campaigns = Campaign.query.filter_by(created_by_id=admin.id)\
+        .order_by(Campaign.created_at.desc())\
+        .paginate(page=page, per_page=20, error_out=False)
     
     return render_template('admin/campaigns.html', campaigns=campaigns)
 
@@ -263,11 +301,17 @@ def add_employees_to_campaign(campaign_id):
     if request.method == 'POST':
         try:
             email_list = request.form.get('email_list').split('\n')
-            
+
+            EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+            invalid_emails = []
             added_count = 0
+
             for email in email_list:
-                email = email.strip()
+                email = email.strip().lower()
                 if not email:
+                    continue
+                if not EMAIL_RE.match(email):
+                    invalid_emails.append(email)
                     continue
                 
                 # Create employee if doesn't exist
@@ -300,7 +344,9 @@ def add_employees_to_campaign(campaign_id):
             db.session.commit()
             log_audit('ADD_EMPLOYEES_TO_CAMPAIGN', 'campaign', campaign_id,
                      f'Added {added_count} employees')
-            
+
+            if invalid_emails:
+                flash(f'Skipped {len(invalid_emails)} invalid emails: {", ".join(invalid_emails[:5])}', 'warning')
             flash(f'Added {added_count} employees to campaign', 'success')
             return redirect(url_for('campaign_detail', campaign_id=campaign_id))
         
@@ -425,10 +471,122 @@ def test_email(campaign_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/admin/campaigns/<campaign_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_campaign(campaign_id):
+    """Edit existing campaign details."""
+    campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
+
+    if not campaign or campaign.created_by_id != session['admin_id']:
+        flash('Campaign not found', 'error')
+        return redirect(url_for('campaigns_list'))
+
+    templates = get_phishing_templates()
+
+    if request.method == 'POST':
+        try:
+            campaign.name = request.form.get('name')
+            campaign.description = request.form.get('description')
+
+            db.session.commit()
+
+            log_audit('EDIT_CAMPAIGN', 'campaign', campaign_id,
+                      f'Campaign: {campaign.name}')
+            logger.info(f'Campaign edited: {campaign.name}')
+
+            flash('Campaign updated successfully', 'success')
+            return redirect(url_for('campaign_detail', campaign_id=campaign_id))
+
+        except Exception as e:
+            logger.error(f'Error editing campaign: {str(e)}')
+            flash(f'Error editing campaign: {str(e)}', 'error')
+
+    return render_template('admin/campaign_form.html',
+                           templates=templates,
+                           campaign=campaign,
+                           is_edit=True)
+
+
+@app.route('/admin/campaigns/<campaign_id>/resend', methods=['GET', 'POST'])
+@login_required
+def resend_campaign(campaign_id):
+    """Resend campaign emails using selected strategy."""
+    campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
+
+    if not campaign or campaign.created_by_id != session['admin_id']:
+        flash('Campaign not found', 'error')
+        return redirect(url_for('campaigns_list'))
+
+    if request.method == 'POST':
+        try:
+            resend_option = request.form.get('resend_option', 'unsent')
+
+            if resend_option == 'unsent':
+                campaign_employees = CampaignEmployee.query.filter_by(
+                    campaign_id=campaign.id,
+                    email_sent_at=None
+                ).all()
+            elif resend_option == 'all':
+                campaign_employees = CampaignEmployee.query.filter_by(
+                    campaign_id=campaign.id
+                ).all()
+                for ce in campaign_employees:
+                    ce.email_sent_at = None
+                    ce.status = 'pending'
+            else:
+                campaign_employees = CampaignEmployee.query.filter_by(
+                    campaign_id=campaign.id,
+                    status='pending'
+                ).all()
+
+            sent_count = 0
+            failed_count = 0
+
+            for ce in campaign_employees:
+                employee = Employee.query.get(ce.employee_id)
+                result = send_phishing_simulation_email(campaign, ce, employee)
+
+                if result.get('success'):
+                    ce.email_sent_at = datetime.utcnow()
+                    ce.status = 'sent'
+                    sent_count += 1
+                else:
+                    failed_count += 1
+                    logger.warning(f'Failed to resend email to {employee.email}')
+
+            if sent_count > 0:
+                campaign.status = 'sent'
+
+            db.session.commit()
+
+            log_audit('RESEND_CAMPAIGN_EMAILS', 'campaign', campaign_id,
+                      f'Resent {sent_count}, Failed {failed_count}')
+
+            flash(f'Resent {sent_count} emails, {failed_count} failed', 'success')
+            return redirect(url_for('campaign_detail', campaign_id=campaign_id))
+
+        except Exception as e:
+            logger.error(f'Error resending campaign: {str(e)}')
+            flash(f'Error resending campaign: {str(e)}', 'error')
+
+    campaign_employees = CampaignEmployee.query.filter_by(campaign_id=campaign.id).all()
+    unsent_count = sum(1 for ce in campaign_employees if not ce.email_sent_at)
+    sent_count = sum(1 for ce in campaign_employees if ce.email_sent_at)
+
+    return render_template(
+        'admin/resend_campaign.html',
+        campaign=campaign,
+        total_employees=len(campaign_employees),
+        unsent_count=unsent_count,
+        sent_count=sent_count
+    )
+
+
 # ============================================================================
 # CLICK TRACKING ROUTES
 # ============================================================================
 
+@csrf.exempt
 @app.route('/track/click/<campaign_id>/<tracking_token>', methods=['GET'])
 def track_click_event(campaign_id, tracking_token):
     """Track phishing link click and redirect to awareness portal."""
@@ -452,10 +610,35 @@ def track_click_event(campaign_id, tracking_token):
                              message='This link is invalid or has expired.'), 404
 
 
+@csrf.exempt
+@app.route('/track/open/<campaign_id>/<tracking_token>', methods=['GET'])
+def track_open_event(campaign_id, tracking_token):
+    """Track email open via pixel — does NOT count as a click."""
+    try:
+        campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
+        if campaign:
+            campaign_employee = CampaignEmployee.query.filter_by(
+                campaign_id=campaign.id,
+                tracking_token=tracking_token
+            ).first()
+            if campaign_employee and not campaign_employee.email_opened:
+                campaign_employee.email_opened = True
+                db.session.commit()
+                logger.info(f'Email opened tracked: campaign={campaign_id}, token={tracking_token}')
+    except Exception as e:
+        logger.error(f'Error tracking open: {str(e)}')
+    
+    # Return a transparent 1x1 GIF
+    gif = b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x00\x00\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b'
+    from flask import Response
+    return Response(gif, mimetype='image/gif')
+
+
 # ============================================================================
 # AWARENESS PORTAL ROUTES
 # ============================================================================
 
+@csrf.exempt
 @app.route('/awareness/<campaign_id>/<tracking_token>', methods=['GET'])
 def awareness_portal(campaign_id, tracking_token):
     """Display phishing awareness training content."""
@@ -498,6 +681,7 @@ def awareness_portal(campaign_id, tracking_token):
 # QUIZ ROUTES
 # ============================================================================
 
+@csrf.exempt
 @app.route('/quiz/<campaign_id>/<tracking_token>', methods=['GET'])
 def quiz_page(campaign_id, tracking_token):
     """Display quiz questions."""
@@ -513,6 +697,13 @@ def quiz_page(campaign_id, tracking_token):
         
         if not campaign_employee:
             return render_template('error.html', title='Invalid Link'), 404
+
+        # Prevent quiz replay
+        existing_result = QuizResult.query.filter_by(
+            campaign_employee_id=campaign_employee.id
+        ).first()
+        if existing_result:
+            return redirect(url_for('quiz_results', tracking_token=tracking_token))
         
         # Get quiz questions
         questions = get_quiz_questions(campaign.phishing_type)
@@ -530,6 +721,7 @@ def quiz_page(campaign_id, tracking_token):
         return render_template('error.html', title='Error'), 500
 
 
+@csrf.exempt
 @app.route('/api/quiz/submit', methods=['POST'])
 def submit_quiz():
     """Submit quiz answers and save results."""
@@ -542,13 +734,15 @@ def submit_quiz():
         
         # Find campaign and employee
         campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
+        if not campaign:
+            return jsonify({'success': False, 'message': 'Campaign not found'}), 404
+
         campaign_employee = CampaignEmployee.query.filter_by(
             campaign_id=campaign.id,
             tracking_token=tracking_token
         ).first()
-        
-        if not campaign or not campaign_employee:
-            return jsonify({'success': False, 'message': 'Invalid campaign or employee'}), 404
+        if not campaign_employee:
+            return jsonify({'success': False, 'message': 'Invalid tracking token'}), 404
         
         employee = Employee.query.get(campaign_employee.employee_id)
         
@@ -741,6 +935,22 @@ def internal_error(error):
                          message='An internal server error occurred.'), 500
 
 
+@app.errorhandler(CSRFError)
+def handle_csrf_error(error):
+    """Return JSON for API/AJAX CSRF failures, HTML otherwise."""
+    wants_json = (
+        request.path.startswith('/api/')
+        or request.is_json
+        or 'application/json' in (request.headers.get('Accept', '') or '').lower()
+        or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    )
+    if wants_json:
+        return jsonify({'success': False, 'message': f'CSRF validation failed: {error.description}'}), 400
+
+    flash(f'CSRF validation failed: {error.description}', 'error')
+    return redirect(url_for('login'))
+
+
 # ============================================================================
 # DATABASE INITIALIZATION
 # ============================================================================
@@ -779,4 +989,8 @@ def init_db():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(
+        debug=app.config.get('DEBUG', False),
+        host=os.getenv('HOST', '127.0.0.1'),
+        port=int(os.getenv('PORT', 5000))
+    )

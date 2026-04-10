@@ -52,6 +52,7 @@ class Config:
     SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'phishing-simulator@demo-company.com')
     SENDER_NAME = os.getenv('SENDER_NAME', 'Employee Training Portal')
     SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
+    TRUST_PROXY = os.getenv('TRUST_PROXY', 'False') == 'True'
     
     # Tracking and logging
     LOG_FILE = 'logs/phishaware.log'
@@ -79,6 +80,19 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
     SESSION_COOKIE_SECURE = True
+
+    @classmethod
+    def validate(cls):
+        """Raise at startup if required production environment variables are missing."""
+        errors = []
+        if cls.SECRET_KEY == 'dev-secret-key-change-in-production':
+            errors.append("SECRET_KEY must be changed from the default value")
+        if cls.SQLALCHEMY_DATABASE_URI == 'sqlite:///phishaware.db':
+            errors.append("DATABASE_URL should use PostgreSQL or MySQL in production, not SQLite")
+        if cls.SERVER_URL == 'http://localhost:5000':
+            errors.append("SERVER_URL must be set to your public domain (e.g. https://yourdomain.com)")
+        if errors:
+            raise RuntimeError("Production config errors:\n" + "\n".join(f"  - {e}" for e in errors))
 
 
 class TestingConfig(Config):

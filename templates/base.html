@@ -3,20 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="version" content="1.0.0">
     <meta name="date" content="February 12, 2026">
     <meta name="generator" content="PhishAware v1.0.0">
     <title>{% block title %}PhishAware - Phishing Awareness Training{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     {% if 'admin_id' in session %}
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">
-                <strong>PhishAware</strong> - Phishing Training Platform
+    <nav class="navbar navbar-expand-lg app-navbar sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('admin_dashboard') }}">
+                <span class="brand-badge"><i class="bi bi-shield-check"></i></span>
+                <div>
+                    <strong>PhishAware</strong>
+                </div>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -24,19 +29,19 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('campaigns_list') }}">Campaigns</a>
+                        <a class="nav-link" href="{{ url_for('campaigns_list') }}"><i class="bi bi-bullseye"></i> Campaigns</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
-                            Reports
+                            <i class="bi bi-graph-up"></i> Reports
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('click_statistics_report') }}">Click Statistics</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('quiz_analytics_report') }}">Quiz Analytics</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('awareness_report') }}">Awareness Report</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('click_statistics_report') }}"><i class="bi bi-cursor-fill"></i> Click Statistics</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('quiz_analytics_report') }}"><i class="bi bi-check2-square"></i> Quiz Analytics</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('awareness_report') }}"><i class="bi bi-person-check"></i> Awareness Report</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
@@ -44,7 +49,8 @@
                     </li>
                     <li class="nav-item">
                         <form method="POST" action="{{ url_for('logout') }}" style="display: inline;">
-                            <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
                         </form>
                     </li>
                 </ul>
@@ -53,26 +59,26 @@
     </nav>
     {% endif %}
 
-    <div class="container-fluid">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show m-3" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    <main class="app-shell">
+        <div class="container page-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-        {% block content %}{% endblock %}
-    </div>
+            {% block content %}{% endblock %}
+        </div>
+    </main>
 
-    <footer class="bg-light text-center py-3 mt-5">
-        <p class="text-muted small">
-            PhishAware - Phishing Awareness Training Platform | 
-            <em>Authorized Training Only</em> | 
-            <em>Training Disclaimer: This platform contains simulated phishing content for authorized security awareness training only.</em>
+    <footer class="app-footer text-center py-4 mt-5">
+        <p class="small mb-0">
+            <strong>PhishAware</strong> — Authorized Security Awareness Training | Training Disclaimer: Simulated content for approved educational use only.
         </p>
     </footer>
 
@@ -81,3 +87,4 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+
