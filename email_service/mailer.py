@@ -88,23 +88,6 @@ class MailtrapEmailService(EmailService):
             dict: Success status and message
         """
         try:
-            if not self.username or not self.password:
-                logger.warning(f'Mailtrap not configured. Demo mode: Email would be sent to {to_email}')
-                return {
-                    'success': True,
-                    'message': 'Email sent (demo mode - Mailtrap not configured)',
-                    'timestamp': datetime.datetime.utcnow().isoformat(),
-                    'mode': 'demo'
-                }
-
-            logger.info(
-                'Mailtrap SMTP send attempt host=%s port=%s user=%s to=%s',
-                self.host,
-                self.port,
-                self.username,
-                to_email
-            )
-            
             # Create message
             message = MIMEMultipart('alternative')
             message['Subject'] = subject
@@ -131,8 +114,8 @@ class MailtrapEmailService(EmailService):
             logger.info(f'Email sent successfully to {to_email}')
             return {
                 'success': True,
-                'message': 'Email sent successfully via Mailtrap',
-                'timestamp': datetime.datetime.utcnow().isoformat()
+                'message': 'Email sent successfully',
+                'timestamp': datetime.utcnow().isoformat()
             }
         
         except smtplib.SMTPAuthenticationError as e:
@@ -202,15 +185,6 @@ class SendGridEmailService(EmailService):
             dict: Success status and message
         """
         try:
-            if not self.api_key:
-                logger.warning(f'SendGrid not configured. Demo mode: Email would be sent to {to_email}')
-                return {
-                    'success': True,
-                    'message': 'Email sent (demo mode - SendGrid not configured)',
-                    'timestamp': datetime.datetime.utcnow().isoformat(),
-                    'mode': 'demo'
-                }
-            
             from sendgrid import SendGridAPIClient
             from sendgrid.helpers.mail import Mail, Email, To, Content
             
@@ -229,7 +203,7 @@ class SendGridEmailService(EmailService):
             
             return {
                 'success': response.status_code in [200, 201, 202],
-                'message': 'Email sent successfully via SendGrid',
+                'message': 'Email sent successfully',
                 'status_code': response.status_code,
                 'timestamp': datetime.datetime.utcnow().isoformat()
             }
@@ -294,7 +268,7 @@ def generate_html_email(campaign, employee_email, tracking_link, phishing_type):
         str: HTML email content
     """
     # Pixel tracker for email open tracking
-    pixel_tracker = f'<img src="{tracking_link.replace("/track/click/", "/track/open/")}" width="1" height="1" alt="" />'
+    pixel_tracker = f'<img src="{tracking_link}?action=open" width="1" height="1" alt="" />'
     
     # Create click link with tracker
     click_link = tracking_link
