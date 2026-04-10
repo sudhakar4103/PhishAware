@@ -294,10 +294,10 @@ def generate_html_email(campaign, employee_email, tracking_link, phishing_type):
         str: HTML email content
     """
     # Pixel tracker for email open tracking
-    pixel_tracker = f'<img src="{tracking_link}?action=open" width="1" height="1" alt="" />'
+    pixel_tracker = f'<img src="{tracking_link.replace("/track/click/", "/track/open/")}" width="1" height="1" alt="" />'
     
     # Create click link with tracker
-    click_link = f'{tracking_link}?action=click'
+    click_link = tracking_link
     
     template_html = campaign.email_template or ''
     template_html = template_html.replace('{{tracking_link}}', click_link)

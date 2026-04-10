@@ -278,3 +278,117 @@ def test_email(campaign_id):
     except Exception as e:
         logger.error(f'Error sending test email: {str(e)}', exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@campaigns_bp.route('/<campaign_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_campaign(campaign_id):
+    """Edit existing campaign details."""
+    campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
+    
+    if not campaign or campaign.created_by_id != session['admin_id']:
+        flash('Campaign not found', 'error')
+        return redirect(url_for('campaigns.campaigns_list'))
+    
+    templates = get_phishing_templates()
+    
+    if request.method == 'POST':
+        try:
+            # Update basic campaign details only (not template-related fields)
+            campaign.name = request.form.get('name')
+            campaign.description = request.form.get('description')
+            
+            db.session.commit()
+            
+            log_audit('EDIT_CAMPAIGN', 'campaign', campaign_id, 
+                     f'Campaign: {campaign.name}')
+            logger.info(f'Campaign edited: {campaign.name}')
+            
+            flash('Campaign updated successfully', 'success')
+            return redirect(url_for('campaigns.campaign_detail', campaign_id=campaign_id))
+        
+        except Exception as e:
+            logger.error(f'Error editing campaign: {str(e)}')
+            flash(f'Error editing campaign: {str(e)}', 'error')
+    
+    return render_template('admin/campaign_form.html', 
+                         templates=templates, 
+                         campaign=campaign, 
+                         is_edit=True)
+
+
+@campaigns_bp.route('/<campaign_id>/resend', methods=['GET', 'POST'])
+@login_required
+def resend_campaign(campaign_id):
+    """Resend campaign emails to employees (retry unsent or failed)."""
+    campaign = Campaign.query.filter_by(campaign_id=campaign_id).first()
+    
+    if not campaign or campaign.created_by_id != session['admin_id']:
+        flash('Campaign not found', 'error')
+        return redirect(url_for('campaigns.campaigns_list'))
+    
+    if request.method == 'POST':
+        try:
+            resend_option = request.form.get('resend_option', 'unsent')  # 'unsent', 'all', 'failed'
+            
+            if resend_option == 'unsent':
+                # Resend only to those who haven't received it
+                campaign_employees = CampaignEmployee.query.filter_by(
+                    campaign_id=campaign.id,
+                    email_sent_at=None
+                ).all()
+            elif resend_option == 'all':
+                # Mark all as pending and resend
+                campaign_employees = CampaignEmployee.query.filter_by(
+                    campaign_id=campaign.id
+                ).all()
+                for ce in campaign_employees:
+                    ce.email_sent_at = None
+                    ce.status = 'pending'
+            else:  # 'failed'
+                # Resend to those marked as pending (no sent_at timestamp)
+                campaign_employees = CampaignEmployee.query.filter_by(
+                    campaign_id=campaign.id,
+                    status='pending'
+                ).all()
+            
+            sent_count = 0
+            failed_count = 0
+            
+            for ce in campaign_employees:
+                employee = Employee.query.get(ce.employee_id)
+                
+                result = send_phishing_simulation_email(campaign, ce, employee)
+                
+                if result.get('success'):
+                    ce.email_sent_at = datetime.utcnow()
+                    ce.status = 'sent'
+                    sent_count += 1
+                else:
+                    failed_count += 1
+                    logger.warning(f'Failed to resend email to {employee.email}')
+            
+            if sent_count > 0:
+                campaign.status = 'sent'
+            db.session.commit()
+            
+            log_audit('RESEND_CAMPAIGN_EMAILS', 'campaign', campaign_id,
+                     f'Resent {sent_count}, Failed {failed_count}')
+            
+            flash(f'Resent {sent_count} emails, {failed_count} failed', 'success')
+            return redirect(url_for('campaigns.campaign_detail', campaign_id=campaign_id))
+        
+        except Exception as e:
+            logger.error(f'Error resending campaign: {str(e)}')
+            flash(f'Error resending campaign: {str(e)}', 'error')
+    
+    # Get statistics for the resend page
+    campaign_employees = CampaignEmployee.query.filter_by(campaign_id=campaign.id).all()
+    unsent_count = sum(1 for ce in campaign_employees if not ce.email_sent_at)
+    sent_count = sum(1 for ce in campaign_employees if ce.email_sent_at)
+    
+    return render_template('admin/resend_campaign.html', 
+                         campaign=campaign,
+                         total_employees=len(campaign_employees),
+                         unsent_count=unsent_count,
+                         sent_count=sent_count)

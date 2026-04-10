@@ -34,19 +34,28 @@ def calculate_and_save_risk_score(campaign_employee_id):
         quiz_score = quiz_result.score if quiz_result else 0
         clicked = campaign_employee.clicked
         
-        # Calculate awareness level
-        if clicked:
-            awareness_level = 'low'
-            risk_level = 'high'
-        elif quiz_score >= 80:
-            awareness_level = 'high'
-            risk_level = 'low'
-        elif quiz_score >= 50:
-            awareness_level = 'medium'
-            risk_level = 'medium'
+        # Calculate time to click in minutes
+        click_time = None
+        if clicked and campaign_employee.email_sent_at and campaign_employee.clicked_at:
+            delta = campaign_employee.clicked_at - campaign_employee.email_sent_at
+            click_time = max(0, int(delta.total_seconds() / 60))
+
+        # Combined scoring — quiz outcome matters even if they clicked
+        if not clicked:
+            if quiz_score >= 80:
+                awareness_level, risk_level = 'high', 'low'
+            elif quiz_score >= 50:
+                awareness_level, risk_level = 'medium', 'medium'
+            else:
+                awareness_level, risk_level = 'low', 'high'
         else:
-            awareness_level = 'low'
-            risk_level = 'high'
+            # Clicked the link but may have learned from the quiz
+            if quiz_score >= 80:
+                awareness_level, risk_level = 'medium', 'medium'
+            elif quiz_score >= 50:
+                awareness_level, risk_level = 'low', 'high'
+            else:
+                awareness_level, risk_level = 'low', 'high'
         
         # Save or update risk score
         risk_score = RiskScore.query.filter_by(
@@ -64,6 +73,7 @@ def calculate_and_save_risk_score(campaign_employee_id):
         
         risk_score.clicked_link = clicked
         risk_score.quiz_score = quiz_score
+        risk_score.click_time_minutes = click_time
         risk_score.overall_awareness_level = awareness_level
         risk_score.risk_level = risk_level
         risk_score.updated_at = datetime.utcnow()
