@@ -26,19 +26,10 @@ PhishAware is a Flask-based phishing awareness training platform for authorized 
    pip install -r requirements.txt
    ```
 
-2. **Configure `.env` file:**
-   ```
-   FLASK_ENV=development
-   SECRET_KEY=your-secret-key
-   EMAIL_PROVIDER=mailtrap
-   MAILTRAP_HOST=smtp.gmail.com
-   MAILTRAP_PORT=587
-   MAILTRAP_USERNAME=yourgmail@gmail.com
-   MAILTRAP_PASSWORD=your_16_char_google_app_password
-   SENDER_EMAIL=yourgmail@gmail.com
-   SENDER_NAME=Security Training Team
-   SERVER_URL=http://localhost:5000
-   ```
+2. **Configure environment files:**
+   - Copy `.env.dev` for local development.
+   - Copy `.env.prod` for production deployments.
+   - The app loads `.env.dev` when `FLASK_ENV=development` and `.env.prod` when `FLASK_ENV=production`.
 
 3. **Initialize database:**
    ```bash
@@ -102,10 +93,11 @@ PhishAware/
 
 ## Email Configuration
 
-**Gmail SMTP (Student-friendly, quickest setup):**
+**Development SMTP setup:**
 ```
+FLASK_ENV=development
 EMAIL_PROVIDER=mailtrap
-MAILTRAP_HOST=smtp.gmail.com
+MAILTRAP_HOST=sandbox.smtp.mailtrap.io
 MAILTRAP_PORT=587
 MAILTRAP_USERNAME=yourgmail@gmail.com
 MAILTRAP_PASSWORD=your_16_char_google_app_password
@@ -116,7 +108,6 @@ SERVER_URL=http://localhost:5000
 ```
 
 Notes:
-- For Gmail SMTP, enable 2-Step Verification and use a Google App Password.
 - For Mailtrap sandbox testing, use sandbox SMTP credentials.
 - `SERVER_URL` must be reachable by email recipients if they click links outside your local machine.
 

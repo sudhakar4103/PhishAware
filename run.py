@@ -30,7 +30,7 @@ def init_db():
     """Initialize database and create default admin user."""
     with app.app_context():
         db.create_all()
-        
+
         # Create default admin user if it doesn't exist
         admin = Admin.query.filter_by(username='admin').first()
         if not admin:
@@ -44,6 +44,10 @@ def init_db():
             db.session.add(admin)
             db.session.commit()
             logger.info('Default admin user created: admin / admin123')
+
+
+# Ensure the containerized app is usable when imported by gunicorn.
+init_db()
 
 
 @app.shell_context_processor

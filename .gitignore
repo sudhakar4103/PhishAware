@@ -67,8 +67,11 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
+# Environments and secrets
 .env
+.env.local
+.env.dev
+.env.prod
 .venv
 env/
 venv/
@@ -94,7 +97,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Database files
+# Database files and local state
+instance/
 *.db
 *.sqlite
 *.sqlite3
@@ -114,6 +118,9 @@ Thumbs.db
 logs/
 *.log
 
+# Cache and scratch files
+.pytest_cache/
+Untitled-*.json
+
 # Project specific
-.env.local
 phishaware.db

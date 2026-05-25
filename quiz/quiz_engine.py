@@ -260,6 +260,7 @@ def validate_quiz_answer(answer_data, phishing_type):
             results['answers'].append({
                 'question_id': q_id,
                 'question': question['question'],
+                'options': question['options'],
                 'selected_answer': selected,
                 'correct_answer': correct,
                 'is_correct': is_correct,
