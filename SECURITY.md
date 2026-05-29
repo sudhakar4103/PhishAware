@@ -111,8 +111,8 @@ DEBUG=False
 SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_urlsafe(32))">
 SESSION_COOKIE_SECURE=True
 SQLALCHEMY_DATABASE_URI=postgresql://user:pass@localhost/phishaware
-EMAIL_PROVIDER=sendgrid
-SENDGRID_API_KEY=<your-api-key>
+GMAIL_USERNAME=<your-email@gmail.com>
+GMAIL_APP_PASSWORD=<your-app-password>
 SERVER_URL=https://phishaware.company.com
 ```
 
@@ -143,7 +143,7 @@ server {
 ALLOW: HTTPS (443) from company network
 ALLOW: SSH (22) from admin network only
 DENY: Direct database access from internet
-DENY: SMTP from internet (use SendGrid/Mailtrap)
+DENY: SMTP from internet (use Gmail SMTP with app password)
 ```
 
 ## ⚖️ Compliance & Legal

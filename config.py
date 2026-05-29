@@ -46,20 +46,17 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # Email configuration (Mailtrap or SendGrid)
-    EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'mailtrap')  # 'mailtrap' or 'sendgrid'
-    
-    # Mailtrap Configuration
-    MAILTRAP_USERNAME = os.getenv('MAILTRAP_USERNAME', '')
-    MAILTRAP_PASSWORD = os.getenv('MAILTRAP_PASSWORD', '')
-    MAILTRAP_HOST = os.getenv('MAILTRAP_HOST', 'sandbox.smtp.mailtrap.io')
-    MAILTRAP_PORT = int(os.getenv('MAILTRAP_PORT', 587))
-    
-    # SendGrid Configuration
-    SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
-    
+    # Email configuration (Gmail SMTP)
+    GMAIL_USERNAME = os.getenv('GMAIL_USERNAME', '')
+    GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD', '')
+    GMAIL_SMTP_HOST = os.getenv('GMAIL_SMTP_HOST', 'smtp.gmail.com')
+    GMAIL_SMTP_PORT = int(os.getenv('GMAIL_SMTP_PORT', 587))
+
     # App configuration
-    SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'phishing-simulator@demo-company.com')
+    SENDER_EMAIL = os.getenv(
+        'SENDER_EMAIL',
+        os.getenv('GMAIL_USERNAME', 'phishing-simulator@demo-company.com')
+    )
     SENDER_NAME = os.getenv('SENDER_NAME', 'Employee Training Portal')
     SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
     TRUST_PROXY = os.getenv('TRUST_PROXY', 'False') == 'True'

@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ### 4. Copy Environment File
 ```bash
 cp .env.example .env
-# Edit .env with your Mailtrap/SendGrid credentials
+# Edit .env with your Gmail SMTP credentials
 ```
 
 ### 5. Run Setup Script
@@ -87,17 +87,12 @@ python app.py
 
 ## Email Configuration
 
-### Mailtrap (Free Testing)
+### Gmail SMTP
 ```env
-EMAIL_PROVIDER=mailtrap
-MAILTRAP_USERNAME=your_username
-MAILTRAP_PASSWORD=your_password
-```
-
-### SendGrid (Production)
-```env
-EMAIL_PROVIDER=sendgrid
-SENDGRID_API_KEY=your_api_key
+GMAIL_USERNAME=your_username@gmail.com
+GMAIL_APP_PASSWORD=your_app_password
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=587
 ```
 
 ---

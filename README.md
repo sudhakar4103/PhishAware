@@ -14,7 +14,7 @@ PhishAware is a Flask-based phishing awareness training platform for authorized 
 - **Backend:** Python 3.8+, Flask
 - **Database:** SQLite / PostgreSQL
 - **ORM:** SQLAlchemy
-- **Email:** Mailtrap (test) / SendGrid (production)
+- **Email:** Gmail SMTP
 - **Frontend:** HTML5, Bootstrap 5
 
 ## Quick Start
@@ -93,14 +93,13 @@ PhishAware/
 
 ## Email Configuration
 
-**Development SMTP setup:**
+**Gmail SMTP setup:**
 ```
 FLASK_ENV=development
-EMAIL_PROVIDER=mailtrap
-MAILTRAP_HOST=sandbox.smtp.mailtrap.io
-MAILTRAP_PORT=587
-MAILTRAP_USERNAME=yourgmail@gmail.com
-MAILTRAP_PASSWORD=your_16_char_google_app_password
+GMAIL_USERNAME=yourgmail@gmail.com
+GMAIL_APP_PASSWORD=your_16_char_google_app_password
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=587
 
 SENDER_EMAIL=yourgmail@gmail.com
 SENDER_NAME=Security Training Team
@@ -108,7 +107,7 @@ SERVER_URL=http://localhost:5000
 ```
 
 Notes:
-- For Mailtrap sandbox testing, use sandbox SMTP credentials.
+- Use a Gmail app password, not your normal account password.
 - `SERVER_URL` must be reachable by email recipients if they click links outside your local machine.
 
 ### 3. Initialize database
