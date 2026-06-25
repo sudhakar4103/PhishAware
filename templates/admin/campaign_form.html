@@ -1,28 +1,30 @@
 {% extends "base.html" %}
 
-{% block title %}Create Campaign - PhishAware{% endblock %}
+{% block title %}{% if is_edit %}Edit Campaign{% else %}Create Campaign{% endif %} - PhishAware{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-lg-8">
-            <h3 class="mb-4">Create New Phishing Simulation Campaign</h3>
+            <h3 class="mb-4">{% if is_edit %}Edit Phishing Simulation Campaign{% else %}Create New Phishing Simulation Campaign{% endif %}</h3>
 
-            <form action="{{ url_for('create_campaign') }}" method="POST">
+            <form action="{% if is_edit %}{{ url_for('edit_campaign', campaign_id=campaign.campaign_id) }}{% else %}{{ url_for('create_campaign') }}{% endif %}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="card">
                     <div class="card-body">
                         <h6 class="card-title">Campaign Details</h6>
                         
                         <div class="mb-3">
                             <label for="name" class="form-label">Campaign Name *</label>
-                            <input type="text" class="form-control" id="name" name="name" required placeholder="e.g., Monthly Q1 Phishing Test">
+                            <input type="text" class="form-control" id="name" name="name" value="{% if campaign %}{{ campaign.name }}{% endif %}" required placeholder="e.g., Monthly Q1 Phishing Test">
                         </div>
 
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Campaign description and objectives..."></textarea>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Campaign description and objectives...">{% if campaign %}{{ campaign.description }}{% endif %}</textarea>
                         </div>
 
+                        {% if not is_edit %}
                         <div class="mb-3">
                             <label for="template_id" class="form-label">Phishing Template *</label>
                             <select class="form-select" id="template_id" name="template_id" required>
@@ -33,6 +35,17 @@
                             </select>
                             <small class="form-text text-muted">Templates are provided by the platform. Admins select one and proceed.</small>
                         </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <label for="template_id" class="form-label">Current Phishing Template</label>
+                            <div class="alert alert-info mb-3">
+                                <strong>Template:</strong> {{ campaign.phishing_type | replace('_', ' ') | title }}<br>
+                                <strong>Sender:</strong> {{ campaign.sender_name }} &lt;{{ campaign.sender_email }}&gt;<br>
+                                <strong>Subject:</strong> {{ campaign.subject_line }}
+                            </div>
+                            <small class="form-text text-muted">Templates cannot be changed after campaign creation. <a href="{{ url_for('create_campaign') }}">Create a new campaign</a> to use a different template.</small>
+                        </div>
+                        {% endif %}
 
                         <div class="alert alert-warning">
                             <strong>⚠️ Important:</strong> 
@@ -45,8 +58,8 @@
                         </div>
 
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">Create Campaign</button>
-                            <a href="{{ url_for('campaigns_list') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">{% if is_edit %}Update Campaign{% else %}Create Campaign{% endif %}</button>
+                            <a href="{% if is_edit %}{{ url_for('campaign_detail', campaign_id=campaign.campaign_id) }}{% else %}{{ url_for('campaigns_list') }}{% endif %}" class="btn btn-secondary">Cancel</a>
                         </div>
                     </div>
                 </div>
@@ -54,6 +67,7 @@
         </div>
 
         <div class="col-lg-4">
+            {% if not is_edit %}
             <div class="card bg-light">
                 <div class="card-body">
                     <h6 class="card-title">Template Preview</h6>
@@ -70,11 +84,26 @@
                     <div id="previewBody" class="small" style="font-size: 12px; max-height: 240px; overflow:auto; background:#fff; border:1px solid #dee2e6; padding:10px; border-radius:6px;">Select a template to preview the email body.</div>
                 </div>
             </div>
+            {% else %}
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">Campaign Actions</h6>
+                    <p class="small text-muted">After editing, you can:</p>
+                    <ul class="small">
+                        <li>Add more employees to the campaign</li>
+                        <li>Send test emails to verify content</li>
+                        <li>Resend emails to employees who haven't received them</li>
+                        <li>View detailed statistics and reports</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <script>
+{% if not is_edit %}
 const templates = {{ templates | tojson }};
 
 function formatType(value) {
@@ -118,5 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTemplatePreview();
     }
 });
+{% endif %}
 </script>
 {% endblock %}
+

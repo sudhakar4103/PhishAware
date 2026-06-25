@@ -5,49 +5,88 @@
 {% block extra_css %}
 <style>
     .quiz-container {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 20px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.96));
+        border: 2px solid rgba(16, 185, 129, 0.22);
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 14px 32px rgba(16, 185, 129, 0.12);
     }
     .question-card {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
+        background: linear-gradient(180deg, #ffffff, #f9fafb);
+        border: 2px solid rgba(16, 185, 129, 0.16);
+        border-radius: 14px;
         margin-bottom: 20px;
         padding: 20px;
     }
+    .question-card h6,
+    .question-card p,
+    .question-card strong {
+        color: #0f172a;
+    }
     .option-label {
         cursor: pointer;
-        padding: 10px;
-        border-radius: 4px;
+        padding: 12px;
+        border-radius: 10px;
         margin-bottom: 10px;
-        transition: all 0.3s;
+        border: 2px solid #d1d5db;
+        color: #1f2937;
+        background: #ffffff;
+        transition: all 0.25s;
+        font-weight: 500;
     }
     .option-label:hover {
-        background: #f0f0f0;
+        background: #ecfdf5;
+        border-color: #10b981;
+        transform: translateY(-1px);
     }
     .option-label input[type="radio"] {
         margin-right: 10px;
+        accent-color: #10b981;
+    }
+    .option-label:has(input[type="radio"]:checked) {
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.04));
+        border-color: #10b981;
+        color: #065f46;
     }
     .timer {
         font-size: 24px;
         font-weight: bold;
         padding: 10px 20px;
-        border-radius: 4px;
-        background: white;
-        border: 2px solid #007bff;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        border: 2px solid #047857;
+        color: #ffffff;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
     }
     .timer.warning {
-        background: #fff3cd;
-        border-color: #ffc107;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border-color: #b45309;
+        color: #ffffff;
     }
     .timer.critical {
-        background: #f8d7da;
-        border-color: #dc3545;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border-color: #991b1b;
+        color: #ffffff;
     }
     .progress-info {
         font-size: 14px;
         margin-bottom: 15px;
+        color: #334155;
+    }
+    #submitBtn {
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+    @media (max-width: 768px) {
+        .quiz-container {
+            padding: 16px;
+        }
+        .question-card {
+            padding: 14px;
+        }
+        .timer {
+            font-size: 20px;
+            padding: 8px 14px;
+        }
     }
 </style>
 {% endblock %}
@@ -189,10 +228,11 @@ document.addEventListener('DOMContentLoaded', function() {
                          parseInt(document.getElementById('timer').textContent.split(':')[1]);
 
         // Submit
-        fetch('{{ url_for("submit_quiz") }}', {
+        fetch('{{ url_for("api.submit_quiz") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
             },
             body: JSON.stringify({
                 campaign_id: campaignId,

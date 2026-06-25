@@ -50,7 +50,7 @@
 - Secret key for session security
 - Database URL
 - Email provider credentials
-- SMTP/SendGrid settings
+- Gmail SMTP settings
 - Cookie security flags
 - Logging configuration
 
@@ -120,8 +120,7 @@
 
 **Key Classes:**
 - `EmailService` - Abstract base class
-- `MailtrapEmailService` - Sends via Mailtrap SMTP
-- `SendGridEmailService` - Sends via SendGrid API
+- `GmailEmailService` - Sends via Gmail SMTP
 
 **Key Functions:**
 - `send_email()` - Send email to recipient
@@ -132,7 +131,6 @@
 
 **Features:**
 - SMTP authentication support
-- SendGrid API integration
 - HTML/plain text email composition
 - Pixel tracking for open detection
 - Tracking link injection
@@ -378,8 +376,7 @@ Awareness Levels:
 - SQLAlchemy - ORM
 - Flask-SQLAlchemy - Flask + SQLAlchemy integration
 - Werkzeug - Security utilities
-- Mailtrap - Email testing
-- sendgrid - Email production
+- Gmail SMTP - Email delivery
 - Gunicorn - Production server
 - python-dotenv - Environment variables
 

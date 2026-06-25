@@ -18,7 +18,7 @@
 - Employee enrollment and tracking
 
 #### 2. **Email Simulation System**
-- Integration with Mailtrap (testing) and SendGrid (production)
+- Integration with Gmail SMTP
 - HTML email templates with red flags for training
 - Unique tracking tokens per employee
 - Click tracking with pixel tracking support
@@ -93,7 +93,7 @@ PhishAware/
 │
 ├── requirements.txt                    # Python dependencies (15 packages)
 │   ├── Flask, SQLAlchemy, Jinja2
-│   ├── Email providers (Mailtrap, SendGrid)
+│   ├── Gmail SMTP email delivery
 │   ├── Production server (Gunicorn)
 │   └── Security and utilities
 │
@@ -121,8 +121,7 @@ PhishAware/
 ├── email_service/
 │   ├── __init__.py
 │   └── mailer.py                       # Email sending module
-│       ├── MailtrapEmailService
-│       ├── SendGridEmailService
+│       ├── GmailEmailService
 │       ├── Tracking link generation
 │       └── HTML email composition
 │

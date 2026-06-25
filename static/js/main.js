@@ -102,23 +102,59 @@ function confirmAction(message, callback) {
 }
 
 /**
+ * Get CSRF token from meta tag.
+ */
+function getCsrfToken() {
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    return tokenMeta ? tokenMeta.getAttribute('content') : '';
+}
+
+/**
+ * Parse JSON response safely and provide useful diagnostics for HTML responses.
+ */
+async function parseJsonResponse(response) {
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    const responseText = await response.text();
+
+    if (!contentType.includes('application/json')) {
+        const preview = responseText.trim().slice(0, 120).replace(/\s+/g, ' ');
+        throw new Error(`Expected JSON but received ${contentType || 'unknown content type'}: ${preview}`);
+    }
+
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (error) {
+        throw new Error('Invalid JSON response from server.');
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message || `HTTP error ${response.status}`);
+    }
+
+    return data;
+}
+
+/**
  * API call wrapper with error handling
  */
 async function apiCall(url, options = {}) {
     try {
+        const { headers: customHeaders = {}, ...fetchOptions } = options;
+        const csrfToken = getCsrfToken();
+        const mergedHeaders = {
+            'Content-Type': 'application/json',
+            ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+            ...customHeaders
+        };
+
         const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
+            ...fetchOptions,
+            credentials: 'same-origin',
+            headers: mergedHeaders
         });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return await response.json();
+
+        return await parseJsonResponse(response);
     } catch (error) {
         console.error('API Error:', error);
         showToast(`Error: ${error.message}`, 'danger');
@@ -181,4 +217,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     }
+
+    // Subtle staggered reveal to make data-heavy pages feel less abrupt.
+    const revealTargets = document.querySelectorAll('.card, .alert, .table-responsive');
+    revealTargets.forEach((element, index) => {
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(10px)';
+        element.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+        const delay = Math.min(index * 45, 420);
+
+        setTimeout(() => {
+            element.style.opacity = '1';
+            element.style.transform = 'translateY(0)';
+        }, delay);
+    });
 });

@@ -1,27 +1,20 @@
-# PhishAware - Phishing Awareness Training Platform
+# PhishAware
 
-**Version:** 1.0.0  
-**Release Date:** February 12, 2026
-
-## Overview
-
-Phishing simulation training platform for authorized employee security awareness testing. Admins send controlled phishing emails, track clicks, and generate awareness reports. **⚠️ Requires explicit employee consent.**
+PhishAware is a Flask-based phishing awareness training platform for authorized internal training campaigns.
 
 ## Features
 
-- Admin dashboard for campaign management
-- Phishing email sending with real-time tracking
-- Employee awareness portal & quiz
-- Click statistics & risk scoring
-- Audit logging & compliance reports
-- No credential/password capture
+- Create and manage phishing simulation campaigns
+- Send training emails to employee lists
+- Track clicks and completion status
+- Run awareness quiz and generate reports
 
 ## Tech Stack
 
 - **Backend:** Python 3.8+, Flask
 - **Database:** SQLite / PostgreSQL
 - **ORM:** SQLAlchemy
-- **Email:** Mailtrap (test) / SendGrid (production)
+- **Email:** Gmail SMTP
 - **Frontend:** HTML5, Bootstrap 5
 
 ## Quick Start
@@ -33,14 +26,10 @@ Phishing simulation training platform for authorized employee security awareness
    pip install -r requirements.txt
    ```
 
-2. **Configure `.env` file:**
-   ```
-   FLASK_ENV=development
-   SECRET_KEY=your-secret-key
-   EMAIL_PROVIDER=mailtrap
-   MAILTRAP_USERNAME=your-username
-   MAILTRAP_PASSWORD=your-password
-   ```
+2. **Configure environment files:**
+   - Copy `.env.dev` for local development.
+   - Copy `.env.prod` for production deployments.
+   - The app loads `.env.dev` when `FLASK_ENV=development` and `.env.prod` when `FLASK_ENV=production`.
 
 3. **Initialize database:**
    ```bash
@@ -104,38 +93,26 @@ PhishAware/
 
 ## Email Configuration
 
-**Mailtrap (Testing):**
+**Gmail SMTP setup:**
 ```
-EMAIL_PROVIDER=mailtrap
-MAILTRAP_USERNAME=your_username
-MAILTRAP_PASSWORD=your_password
+FLASK_ENV=development
+GMAIL_USERNAME=yourgmail@gmail.com
+GMAIL_APP_PASSWORD=your_16_char_google_app_password
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=587
+
+SENDER_EMAIL=yourgmail@gmail.com
+SENDER_NAME=Security Training Team
+SERVER_URL=http://localhost:5000
 ```
 
-**SendGrid (Production):**
-```
-EMAIL_PROVIDER=sendgrid
-SENDGRID_API_KEY=your_api_key
-```
+Notes:
+- Use a Gmail app password, not your normal account password.
+- `SERVER_URL` must be reachable by email recipients if they click links outside your local machine.
 
-## Important - Ethical & Legal Guidelines
+### 3. Initialize database
 
-✅ **DO:**
-- Get explicit employee consent BEFORE campaigns
-- Use clear training disclaimers
-- Document compliance with policy
-
-❌ **DO NOT:**
-- Send without consent
-- Use real company domains
-- Capture actual passwords
-
-## Troubleshooting
-
-**Emails not sending:** Check Mailtrap/SendGrid credentials in `.env`
-
-**Database errors:** 
 ```bash
-rm phishaware.db
 python -c "from app import init_db; init_db()"
 ```
 

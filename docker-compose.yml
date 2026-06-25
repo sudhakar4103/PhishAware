@@ -1,0 +1,27 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8000"
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: sqlite:////app/instance/phishaware.db
+      SECRET_KEY: change-me-in-production
+      SERVER_URL: http://localhost:5000
+      SESSION_COOKIE_SECURE: "False"
+    volumes:
+      - phishaware_instance:/app/instance
+      - phishaware_logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()\""]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  phishaware_instance:
+  phishaware_logs:

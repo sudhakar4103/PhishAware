@@ -158,7 +158,7 @@ def print_summary():
     print("5. Add employees and send phishing emails")
     print("\n⚠️  Security Reminders:")
     print("• Change default admin password in production")
-    print("• Configure email provider (Mailtrap/SendGrid)")
+    print("• Configure Gmail SMTP credentials")
     print("• Use HTTPS in production")
     print("• Set strong SECRET_KEY in .env")
     print("\n📚 Documentation: See README.md for details")

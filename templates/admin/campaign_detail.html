@@ -6,12 +6,16 @@
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>{{ campaign.name }}</h3>
-        <div>
+        <div class="btn-group" role="group">
             {% if campaign.status == 'draft' %}
             <button class="btn btn-secondary" onclick="testEmail('{{ campaign.campaign_id }}')">Test Email</button>
             <button class="btn btn-warning" onclick="sendEmails('{{ campaign.campaign_id }}')">Send Emails</button>
             <a href="{{ url_for('add_employees_to_campaign', campaign_id=campaign.campaign_id) }}" class="btn btn-info">Add Employees</a>
+            {% else %}
+            <button class="btn btn-warning" onclick="resendEmails('{{ campaign.campaign_id }}')" >Resend Emails</button>
+            <a href="{{ url_for('add_employees_to_campaign', campaign_id=campaign.campaign_id) }}" class="btn btn-info">Add Employees</a>
             {% endif %}
+            <a href="{{ url_for('edit_campaign', campaign_id=campaign.campaign_id) }}" class="btn btn-secondary">Edit Campaign</a>
         </div>
     </div>
 
@@ -125,63 +129,84 @@
 </div>
 
 <script>
-function testEmail(campaignId) {
-    fetch(`/admin/campaigns/${campaignId}/test-email`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            alert('✓ Test email sent successfully! Check your inbox/spam folder.');
-        } else {
-            alert('✗ Test email failed: ' + data.message);
-        }
-    })
-    .catch(e => alert('Error: ' + e));
+function getPageCsrfToken() {
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    return tokenMeta ? tokenMeta.getAttribute('content') : '';
 }
 
-function sendEmails(campaignId) {
+async function testEmail(campaignId) {
+    const data = await apiCall(`/admin/campaigns/${campaignId}/test-email`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getPageCsrfToken()
+        }
+    });
+
+    if (!data) {
+        return;
+    }
+
+    if (data.success) {
+        alert('Test email sent successfully. Check your inbox/spam folder.');
+    } else {
+        alert('Test email failed: ' + data.message);
+    }
+}
+
+async function sendEmails(campaignId) {
     if (!confirm('Send phishing simulation emails to all pending employees?')) {
         return;
     }
 
-    fetch(`/admin/campaigns/${campaignId}/send-emails`, {
+    const data = await apiCall(`/admin/campaigns/${campaignId}/send-emails`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(r => r.json())
-    .then(data => {
-        alert(data.message);
-        location.reload();
-    })
-    .catch(e => {
-        alert('Error: ' + e);
+        headers: {
+            'X-CSRFToken': getPageCsrfToken()
+        }
     });
+
+    if (!data) {
+        return;
+    }
+
+    alert(data.message);
+    location.reload();
+}
+
+async function resendEmails(campaignId) {
+    // Redirect to the resend campaign page
+    window.location.href = `/admin/campaigns/${campaignId}/resend`;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     loadEmployees('{{ campaign.campaign_id }}');
 });
 
-function loadEmployees(campaignId) {
-    fetch(`/api/campaigns/${campaignId}/employees`)
-        .then(r => r.json())
-        .then(data => {
-            const tbody = document.getElementById('employeeTableBody');
-            tbody.innerHTML = '';
+async function loadEmployees(campaignId) {
+    const data = await apiCall(`/api/campaigns/${campaignId}/employees`);
+    if (!data) {
+        return;
+    }
 
-            data.employees.forEach(emp => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${emp.email}</td>
-                    <td><span class="badge bg-secondary">${emp.status}</span></td>
-                    <td>${emp.clicked ? '✓' : '✗'} ${emp.clicked_at ? `<small>(${new Date(emp.clicked_at).toLocaleString()})</small>` : ''}</td>
-                    <td>${emp.quiz_score ? emp.quiz_score.toFixed(1) + '%' : '-'}</td>
-                    <td><span class="badge bg-${emp.awareness_level === 'high' ? 'success' : emp.awareness_level === 'medium' ? 'warning' : 'danger'}">${emp.awareness_level}</span></td>
-                `;
-            });
-        });
+    const tbody = document.getElementById('employeeTableBody');
+    tbody.innerHTML = '';
+
+    if (!Array.isArray(data.employees) || data.employees.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No employees found.</td></tr>';
+        return;
+    }
+
+    data.employees.forEach(emp => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${emp.email}</td>
+            <td><span class="badge bg-secondary">${emp.status}</span></td>
+            <td>${emp.clicked ? 'Yes' : 'No'} ${emp.clicked_at ? `<small>(${new Date(emp.clicked_at).toLocaleString()})</small>` : ''}</td>
+            <td>${emp.quiz_score ? emp.quiz_score.toFixed(1) + '%' : '-'}</td>
+            <td><span class="badge bg-${emp.awareness_level === 'high' ? 'success' : emp.awareness_level === 'medium' ? 'warning' : 'danger'}">${emp.awareness_level}</span></td>
+        `;
+    });
 }
 </script>
 {% endblock %}
+

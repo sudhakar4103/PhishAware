@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Resend Campaign - PhishAware{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h3 class="mb-4">Resend Campaign: {{ campaign.name }}</h3>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Campaign Status</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Campaign:</strong> {{ campaign.name }}</p>
+                    <p class="mb-2"><strong>Total Employees:</strong> <span class="badge bg-primary">{{ total_employees }}</span></p>
+                    <p class="mb-2"><strong>Emails Sent:</strong> <span class="badge bg-success">{{ sent_count }}</span></p>
+                    <p class="mb-0"><strong>Unsent Emails:</strong> <span class="badge bg-warning">{{ unsent_count }}</span></p>
+                </div>
+            </div>
+
+            <form action="{{ url_for('resend_campaign', campaign_id=campaign.campaign_id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Choose Resend Option</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Resend emails to:</label>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="resend_option" id="resend_unsent" value="unsent" checked>
+                                <label class="form-check-label" for="resend_unsent">
+                                    <strong>Unsent Only</strong>
+                                    <br>
+                                    <small class="text-muted">Send emails only to employees who haven't received the campaign yet ({{ unsent_count }} employees)</small>
+                                </label>
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="resend_option" id="resend_failed" value="failed">
+                                <label class="form-check-label" for="resend_failed">
+                                    <strong>Resend Failed Only</strong>
+                                    <br>
+                                    <small class="text-muted">Resend to employees whose previous attempt failed</small>
+                                </label>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="resend_option" id="resend_all" value="all">
+                                <label class="form-check-label" for="resend_all">
+                                    <strong>All Employees (Force Resend)</strong>
+                                    <br>
+                                    <small class="text-muted text-danger">⚠️ Resend to ALL employees, including those who already received it. Use with caution.</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-4">
+                            <strong>ℹ️ Note:</strong> 
+                            <ul class="mb-0 mt-2">
+                                <li>Each resend will generate a new tracking link</li>
+                                <li>Previous click data will be preserved</li>
+                                <li>Emails will be tracked separately</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">Resend Selected Option</button>
+                    <a href="{{ url_for('campaign_detail', campaign_id=campaign.campaign_id) }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="mb-0">Campaign Details</h6>
+                </div>
+                <div class="card-body small">
+                    <p class="mb-2">
+                        <strong>Type:</strong> 
+                        <span class="badge bg-secondary">{{ campaign.phishing_type | replace('_', ' ') | title }}</span>
+                    </p>
+                    <p class="mb-2">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{{ 'success' if campaign.status == 'completed' else 'warning' if campaign.status == 'sent' else 'secondary' }}">
+                            {{ campaign.status | title }}
+                        </span>
+                    </p>
+                    <p class="mb-2">
+                        <strong>Sender:</strong> {{ campaign.sender_name }}<br>
+                        <span style="margin-left: 1rem;">&lt;{{ campaign.sender_email }}&gt;</span>
+                    </p>
+                    <p class="mb-2">
+                        <strong>Subject:</strong> {{ campaign.subject_line }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Created:</strong> {{ campaign.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Links</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('campaign_detail', campaign_id=campaign.campaign_id) }}" class="btn btn-outline-primary btn-sm">View Campaign</a>
+                        <a href="{{ url_for('edit_campaign', campaign_id=campaign.campaign_id) }}" class="btn btn-outline-secondary btn-sm">Edit Campaign</a>
+                        <a href="{{ url_for('add_employees_to_campaign', campaign_id=campaign.campaign_id) }}" class="btn btn-outline-info btn-sm">Add More Employees</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

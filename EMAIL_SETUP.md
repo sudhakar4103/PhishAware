@@ -1,68 +1,25 @@
-# Email Configuration Guide
+## Gmail SMTP Setup
 
-This guide explains how to set up email sending for PhishAware.
-
-## Three Email Sending Options
-
-### 1. **Demo Mode (Default - No Setup Required)**
-By default, PhishAware runs in **demo mode** where emails are logged but not actually sent. This is perfect for testing the UI and workflows.
-
-```
-EMAIL_PROVIDER=mailtrap
-MAILTRAP_USERNAME=
-MAILTRAP_PASSWORD=
-```
-
-When credentials are empty, emails log as "sent (demo mode)". This allows you to test the complete flow without email infrastructure.
-
----
-
-### 2. **Mailtrap (Recommended for Testing)**
-
-Mailtrap provides a safe inbox for testing. Emails go to your Mailtrap inbox instead of real employees.
+PhishAware uses Gmail SMTP only. Use a Google app password for the account that sends campaign mail.
 
 #### Setup:
-1. Sign up at [mailtrap.io](https://mailtrap.io)
-2. Create an inbox
-3. Get credentials from **Integrations** → **SMTP**
-4. Add to `.env`:
+1. Enable 2-Step Verification for the Gmail account.
+2. Create an app password in Google Account security settings.
+3. Add to `.env`:
    ```
-   EMAIL_PROVIDER=mailtrap
-   MAILTRAP_USERNAME=your_mailtrap_username
-   MAILTRAP_PASSWORD=your_mailtrap_password
-   MAILTRAP_HOST=live.mailtrap.io
-   MAILTRAP_PORT=465
+   GMAIL_USERNAME=yourgmail@gmail.com
+   GMAIL_APP_PASSWORD=your_16_char_app_password
+   GMAIL_SMTP_HOST=smtp.gmail.com
+   GMAIL_SMTP_PORT=587
+   SENDER_EMAIL=yourgmail@gmail.com
    ```
 
 #### Test:
 1. Create a campaign and add test employees
 2. Click **Test Email** button to send a test
-3. Check your Mailtrap inbox
-
----
-
-### 3. **SendGrid (Production Email)**
-
-SendGrid sends real emails to recipients' actual email addresses.
-
-#### Setup:
-1. Sign up at [sendgrid.com](https://sendgrid.com)
-2. Create an API Key in **Settings** → **API Keys**
-3. Add to `.env`:
-   ```
-   EMAIL_PROVIDER=sendgrid
-   SENDGRID_API_KEY=your_sendgrid_api_key
-   ```
-
-#### Test:
-1. Create a campaign and add test employees
-2. Click **Test Email** button
-3. Check the admin's email for the test
-
+3. Check the Gmail inbox and sent items
 #### Important - Sender Email Verification:
-Before sending, verify the sender email in SendGrid:
-1. Go to **Settings** → **Sender Authentication**
-2. Verify the domain or single sender email used in `SENDER_EMAIL`
+Before sending, verify the Gmail sender account is the one you want to use for campaign mail.
 
 ---
 
@@ -74,23 +31,17 @@ Copy `.env.example` to `.env` and update:
 cp .env.example .env
 ```
 
-Edit `.env` with your email provider settings:
+Edit `.env` with your Gmail SMTP settings:
 
 ```dotenv
-# Email Provider (mailtrap or sendgrid)
-EMAIL_PROVIDER=mailtrap
-
-# Mailtrap Configuration (for testing)
-MAILTRAP_USERNAME=your_mailtrap_username
-MAILTRAP_PASSWORD=your_mailtrap_password
-MAILTRAP_HOST=live.mailtrap.io
-MAILTRAP_PORT=465
-
-# SendGrid Configuration (for production)
-# SENDGRID_API_KEY=your_sendgrid_api_key
+# Gmail SMTP Configuration
+GMAIL_USERNAME=yourgmail@gmail.com
+GMAIL_APP_PASSWORD=your_16_char_app_password
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=587
 
 # Application Settings
-SENDER_EMAIL=your-email@your-domain.com
+SENDER_EMAIL=yourgmail@gmail.com
 SENDER_NAME=Security Training Team
 SERVER_URL=http://localhost:5000
 ```
@@ -112,23 +63,15 @@ SERVER_URL=http://localhost:5000
 
 ## Troubleshooting
 
-### Emails showing "failed (demo mode)"
-- Configure real email credentials in `.env`
-- Restart the app: `python app.py`
-
 ### Test email not arriving
 - Check spam/junk folder
-- Verify sender email is verified in SendGrid
+- Verify the Gmail app password is valid
 - Check app logs for errors: `tail logs/phishaware.log`
 
 ### SMTP Authentication Failed
-- Double-check credentials from email provider
-- Ensure `MAILTRAP_PORT=465` (not 587)
-- Mailtrap uses username, not email address
-
-### SendGrid: Invalid from address
-- Verify sender email domain in SendGrid settings
-- Use a verified sender or verified domain
+- Double-check the Gmail username and app password
+- Ensure `GMAIL_SMTP_PORT=587`
+- Verify 2-Step Verification is enabled on the Gmail account
 
 ---
 
@@ -136,8 +79,8 @@ SERVER_URL=http://localhost:5000
 
 Before going to production:
 
-- [ ] Set up real email provider (SendGrid/Mailtrap)
-- [ ] Verify sender email domain
+- [ ] Set up Gmail app password
+- [ ] Verify sender email address
 - [ ] Test email sending with small group
 - [ ] Set `SERVER_URL` to actual domain (e.g., https://phishaware.company.com)
 - [ ] Enable `SESSION_COOKIE_SECURE=True` and use HTTPS
